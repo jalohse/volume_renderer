@@ -56,6 +56,15 @@ const int LG_VOL_Z = 442;
 
 GLuint texture;
 
+float transformedMaxX;
+float transformedMinX;
+float transformedMaxY;
+float transformedMinY;
+float transformedMaxZ;
+float transformedMinZ;
+cyPoint3f hitPointEnter;
+cyPoint3f hitPointExit;
+cyPoint3f viewDir;
 
 void setInitialRotationAndTranslation()
 {
@@ -77,6 +86,132 @@ cyPoint3f getTextureVertexFor(cyPoint3f pt)
 {
 
 	return (pt / 20) + 0.5;
+}
+
+void findMinMax(float &min, float &max, float min1, float min2, float max1, float max2)
+{
+	if (min1 != -FLT_MAX  && min2 != -FLT_MAX)
+	{
+		min = (min2 > min1) ? min2 : min1;
+	}
+	else if (min1 == -FLT_MAX)
+	{
+		min = min2;
+	}
+	else
+	{
+		min = min1;
+	}
+	if (max1 != FLT_MAX  && max2 != FLT_MAX)
+	{
+		max = (max2 < max1) ? max2 : max1;
+	}
+	else if (max1 == FLT_MAX)
+	{
+		max = max2;
+	}
+	else
+	{
+		max = max1;
+	}
+}
+
+void getBoxIntersectionPts(float &t, float &t1, cyPoint3f tranformedCameraPos, cyPoint3f viewDir)
+{
+	float tMin = -FLT_MAX;
+	float tMax = FLT_MAX;
+	float tXMin;
+	float tXMax;
+	if (viewDir.x == 0)
+	{
+		tXMin = -FLT_MAX;
+		tXMax = FLT_MAX;
+	}
+	else {
+		tXMin = (transformedMinX - tranformedCameraPos.x) / viewDir.x;
+		tXMax = (transformedMaxX - tranformedCameraPos.x) / viewDir.x;
+	}
+	if (tXMin > tXMax)
+	{
+		std::swap(tXMin, tXMax);
+	}
+	float tYMin;
+	float tYMax;
+	if (viewDir.y == 0)
+	{
+		tYMin = -FLT_MAX;
+		tYMax = FLT_MAX;
+	}
+	else {
+		tYMin = (transformedMinY - tranformedCameraPos.y) / viewDir.y;
+		tYMax = (transformedMaxY - tranformedCameraPos.y) / viewDir.y;
+	}
+	if (tYMin > tYMax)
+	{
+		std::swap(tYMin, tYMax);
+	}
+	if ((tXMin > tYMax) || (tYMin > tXMax))
+	{
+		t = -1;
+		t1 = -1;
+	}
+	findMinMax(tMin, tMax, tXMin, tYMin, tXMax, tYMax);
+	float tZMin;
+	float tZMax;
+	if (viewDir.z == 0)
+	{
+		tZMin = -FLT_MAX;
+		tZMax = FLT_MAX;
+	}
+	else {
+		tZMin = (transformedMinZ - tranformedCameraPos.z) / viewDir.z;
+		tZMax = (transformedMaxZ - tranformedCameraPos.z) / viewDir.z;
+	}
+	if (tZMin > tZMax)
+	{
+		std::swap(tZMin, tZMax);
+	}
+	if ((tMin > tZMax) || (tZMin > tMax))
+	{
+		t = -1;
+		t1 = -1;
+	}
+	findMinMax(tMin, tMax, tZMin, tMin, tZMax, tMax);
+	t = tMin;
+	t1 = tMax;
+}
+
+cyPoint3f transformToGlobal(cyPoint3f pt, cyMatrix4f transformationMatrix)
+{
+	cyPoint4f transformedPt = transformationMatrix * cyPoint4f(pt, 1);
+	if (transformedPt.w != 0)
+	{
+		transformedPt = transformedPt / transformedPt.w;
+	}
+	return cyPoint3f(transformedPt);
+}
+
+void populateRayEndStart()
+{
+	cyMatrix4f transformationMatrix = perspectiveMatrix * view * cameraTransformationMatrix;
+	cyPoint3f transformedMeshMin = transformToGlobal(mesh.GetBoundMin(), transformationMatrix);
+	cyPoint3f transformedMeshMax = transformToGlobal(mesh.GetBoundMax(), transformationMatrix);
+	transformedMaxX = transformedMeshMax.x > transformedMeshMin.x ? transformedMeshMax.x : transformedMeshMin.x;
+	transformedMinX = transformedMeshMax.x > transformedMeshMin.x ? transformedMeshMin.x : transformedMeshMax.x;
+	transformedMaxY = transformedMeshMax.y > transformedMeshMin.y ? transformedMeshMax.y : transformedMeshMin.y;
+	transformedMinY = transformedMeshMax.y > transformedMeshMin.y ? transformedMeshMin.y : transformedMeshMax.y;
+	transformedMaxZ = transformedMeshMax.z > transformedMeshMin.z ? transformedMeshMax.z : transformedMeshMin.z;
+	transformedMinZ = transformedMeshMax.z > transformedMeshMin.z ? transformedMeshMin.z : transformedMeshMax.z;
+	cyPoint3f transformedCameraPos = transformToGlobal(origin, transformationMatrix);
+	cyPoint3f transformedOrigin = transformToGlobal(cyPoint3f(0, 0, 0), transformationMatrix);
+	viewDir = transformedOrigin - transformedCameraPos;
+
+	float tValEnter = 0.0;
+	float tValExit = 0.0;
+	getBoxIntersectionPts(tValEnter, tValExit, transformedCameraPos, viewDir);
+	hitPointEnter = transformedCameraPos + (tValEnter * viewDir);
+    hitPointExit = transformedCameraPos + (tValExit * viewDir);
+
 }
 
 void display()
@@ -195,6 +330,7 @@ void createObj()
 
 	setInitialRotationAndTranslation();
 	populateVerticesAndNormals();
+	populateRayEndStart();
 
 	volume_shaders = cy::GLSLProgram();
 	volume_shaders.BuildFiles("vertex_shader.glsl", "fragment_shader.glsl");
@@ -205,6 +341,12 @@ void createObj()
 	volume_shaders.SetUniform(2, perspectiveMatrix);
 	volume_shaders.RegisterUniform(3, "view");
 	volume_shaders.SetUniform(3, view);
+	volume_shaders.RegisterUniform(4, "rayStart");
+	volume_shaders.SetUniform(4, hitPointEnter);
+	volume_shaders.RegisterUniform(5, "rayEnd");
+	volume_shaders.SetUniform(5, hitPointExit);
+	volume_shaders.RegisterUniform(6, "viewDir");
+	volume_shaders.SetUniform(6, viewDir);
 
 	GLuint vertexBufferObj[2];
 	GLuint textureBufferObj[1];
