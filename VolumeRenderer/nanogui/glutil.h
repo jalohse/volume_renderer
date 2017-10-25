@@ -12,16 +12,17 @@
 
 #pragma once
 
-#include <nanogui/opengl.h>
-#include <Eigen/Geometry>
+#include "nanogui/opengl.h"
+#include "Eigen/Geometry"
 #include <map>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace half_float { class half; }
 #endif
 
-#ifndef GL_HALF_FLOAT
-#  define GL_HALF_FLOAT 0x140B
+#if !defined(GL_HALF_FLOAT) || defined(DOXYGEN_DOCUMENTATION_BUILD)
+    /// Ensures that ``GL_HALF_FLOAT`` is defined properly for all platforms.
+    #define GL_HALF_FLOAT 0x140B
 #endif
 
 NAMESPACE_BEGIN(nanogui)
@@ -202,6 +203,29 @@ public:
         glUniformMatrix4fv(uniform(name, warn), 1, GL_FALSE, mat.template cast<float>().data());
     }
 
+    /// Initialize a uniform parameter with a 3x3 affine transform (float)
+    template <typename T>
+    void setUniform(const std::string &name, const Eigen::Transform<T, 3, 3> &affine, bool warn = true) {
+        glUniformMatrix4fv(uniform(name, warn), 1, GL_FALSE, affine.template cast<float>().data());
+    }
+
+    /// Initialize a uniform parameter with a 3x3 matrix (float)
+    template <typename T>
+    void setUniform(const std::string &name, const Eigen::Matrix<T, 3, 3> &mat, bool warn = true) {
+        glUniformMatrix3fv(uniform(name, warn), 1, GL_FALSE, mat.template cast<float>().data());
+    }
+
+    /// Initialize a uniform parameter with a 2x2 affine transform (float)
+    template <typename T>
+    void setUniform(const std::string &name, const Eigen::Transform<T, 2, 2> &affine, bool warn = true) {
+        glUniformMatrix3fv(uniform(name, warn), 1, GL_FALSE, affine.template cast<float>().data());
+    }
+
+    /// Initialize a uniform parameter with a boolean value
+    void setUniform(const std::string &name, bool value, bool warn = true) {
+        glUniform1i(uniform(name, warn), (int)value);
+    }
+
     /// Initialize a uniform parameter with an integer value
     template <typename T, typename std::enable_if<detail::type_traits<T>::integral == 1, int>::type = 0>
     void setUniform(const std::string &name, T value, bool warn = true) {
@@ -235,12 +259,7 @@ public:
     /// Initialize a uniform parameter with a 3D vector (float)
     template <typename T, typename std::enable_if<detail::type_traits<T>::integral == 0, int>::type = 0>
     void setUniform(const std::string &name, const Eigen::Matrix<T, 3, 1>  &v, bool warn = true) {
-		int id = uniform(name, warn);
-		float x = v.x();
-		float y = v.y();
-		float z = v.z();
-        //glUniform3f(uniform(name, warn), (float) v.x(), (float) v.y(), (float) v.z());
-		glUniform3f(id, x, y, z);
+        glUniform3f(uniform(name, warn), (float) v.x(), (float) v.y(), (float) v.z());
     }
 
     /// Initialize a uniform parameter with a 4D vector (int)

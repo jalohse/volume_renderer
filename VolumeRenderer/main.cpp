@@ -8,7 +8,10 @@
 #include "cyGL.h"
 #include <algorithm>
 #include <limits>
-#include "nanogui/button.h"
+
+#include "nanogui/common.h"
+
+using namespace nanogui;
 
 #define width 300
 #define far_plane 500.0f
@@ -478,6 +481,7 @@ int main(int argc, char* argv[])
 	glutMouseFunc(onClick);
 	glutMotionFunc(move);
 	glutSpecialFunc(reset);
+
 
 	glutMainLoop();
 

@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include <nanogui/widget.h>
-#include <nanogui/glutil.h>
+#include "nanogui/widget.h"
+#include "nanogui/glutil.h"
 #include <functional>
 
 NAMESPACE_BEGIN(nanogui)
