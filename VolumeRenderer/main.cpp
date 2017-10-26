@@ -3,16 +3,14 @@
 #include <math.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <glui.h>
 #include "cyTriMesh.h"
 #include "cyMatrix.h"
 #include "cyGL.h"
 #include <algorithm>
 #include <limits>
 
-//#include "nanogui/common.h"
-//#include "nanogui/formhelper.h"
-//
-//using namespace nanogui;
+
 
 #define width 300
 #define far_plane 500.0f
@@ -418,6 +416,9 @@ bool loadDatFileToTexture(char* name)
 	return true;
 }
 
+int wireframe = 0;
+int segments = 8;
+int main_window;
 
 int main(int argc, char* argv[])
 {
@@ -425,7 +426,7 @@ int main(int argc, char* argv[])
 	glutInitContextFlags(GLUT_DEBUG);
 	glutInitWindowSize(width, width);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-	glutCreateWindow("Volume Render of a Present");
+	main_window = glutCreateWindow("Volume Render of a Present");
 	cyGL::PrintVersion();
 	GLenum res = glewInit();
 	if (res != GLEW_OK)
@@ -453,6 +454,13 @@ int main(int argc, char* argv[])
 	glutMouseFunc(onClick);
 	glutMotionFunc(move);
 	glutSpecialFunc(reset);
+
+	GLUI *glui = GLUI_Master.create_glui("GLUI");
+	new GLUI_Checkbox(glui, "Wireframe", &wireframe);
+	(new GLUI_Spinner(glui, "Segments:",&segments))
+		->set_int_limits(3, 60);
+
+	glui->set_main_gfx_window(main_window);
 
 
 	glutMainLoop();
