@@ -46,9 +46,18 @@ cyMatrix4f bias = cyMatrix4f::MatrixTrans(cyPoint3f(0.5f, 0.5f, 0.495f)) * cyMat
 cyMatrix4f teapotLightMVP;
 
 // GLUI vars
+GLUI *glui;
 float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
 int main_window;
+float val1 = 0.2;
+cyPoint4f val1rgba = cyPoint4f(1.0, 0.5, 0.0, 0.2);
+float val2 = 0.3;
+cyPoint4f val2rgba = cyPoint4f(0.0, 1.0, 0.0, 0.2);
+float val3 = 0.4;
+cyPoint4f val3rgba = cyPoint4f(1.0, 0.0, 1.0, 0.2);
+float val4 = 1;
+cyPoint4f val4rgba = cyPoint4f(1.0, 1.0, 0.0, 0.2);
 
 const int SMALL_VOL_X = 246;
 const int SMALL_VOL_Y = 246;
@@ -450,33 +459,34 @@ void onRotate(int param)
 	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
 }
 
-void addFloatSpinner(char *title, GLUI_Panel *panel, GLUI *glui)
+void addFloatSpinner(char *title, float *value, GLUI_Panel *panel)
 {
-	glui->add_spinner_to_panel(panel, title, GLUI_SPINNER_FLOAT)
+	glui->add_spinner_to_panel(panel, title, GLUI_SPINNER_FLOAT, value)
 		->set_float_limits(0.0, 1.0);
 }
 
-void addTransferValuePanel(char *title, GLUI_Panel *panel, GLUI *glui)
+void addTransferValuePanel(char *title, float &value, cyPoint4f &rgbaValue, GLUI_Panel *panel)
 {
-	GLUI_Panel *firstVal = glui->add_panel_to_panel(panel, title);
-	addFloatSpinner("Value: ", firstVal, glui);
-	addFloatSpinner("R: ", firstVal, glui);
-	addFloatSpinner("G: ", firstVal, glui);
-	addFloatSpinner("B: ", firstVal, glui);
+	GLUI_Panel *valuePanel = glui->add_panel_to_panel(panel, title);
+	addFloatSpinner("Value: ", &value, valuePanel);
+	addFloatSpinner("R: ", &rgbaValue.x, valuePanel);
+	addFloatSpinner("G: ", &rgbaValue.y, valuePanel);
+	addFloatSpinner("B: ", &rgbaValue.z, valuePanel);
+	addFloatSpinner("A: ", &rgbaValue.w, valuePanel);
 }
 
 void setUpGLUI()
 {
-	GLUI *glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
+	glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
 	GLUI_Rotation *rotator = glui->add_rotation("Rotation", rotation, 2, onRotate);
 	rotator->set_spin(0);
 
 	GLUI_Panel *transferPanel = glui->add_panel("Transfer Function");
 
-	addTransferValuePanel("Value 1: ", transferPanel, glui);
-	addTransferValuePanel("Value 2: ", transferPanel, glui);
-	addTransferValuePanel("Value 3: ", transferPanel, glui);
-	addTransferValuePanel("Value 4: ", transferPanel, glui);
+	addTransferValuePanel("Value 1: ", val1, val1rgba, transferPanel);
+	addTransferValuePanel("Value 2: ", val2, val2rgba, transferPanel);
+	addTransferValuePanel("Value 3: ", val3, val3rgba, transferPanel);
+	addTransferValuePanel("Value 4: ", val4, val4rgba, transferPanel);
 
 
 	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
@@ -487,7 +497,7 @@ int main(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextFlags(GLUT_DEBUG);
-	glutInitWindowSize(width + 150, width);
+	glutInitWindowSize(width*2.2 + 150, width*2.2);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	main_window = glutCreateWindow("Volume Render of a Present");
 	cyGL::PrintVersion();
