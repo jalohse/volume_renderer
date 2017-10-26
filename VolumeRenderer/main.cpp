@@ -420,11 +420,26 @@ int wireframe = 0;
 int segments = 8;
 int main_window;
 
+
+void myGlutReshape(int x, int y)
+{
+	float xy_aspect;
+
+	xy_aspect = (float)x / (float)y;
+	GLUI_Master.auto_set_viewport();
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glFrustum(-xy_aspect*.08, xy_aspect*.08, -.08, .08, .1, 15.0);
+
+	glutPostRedisplay();
+}
+
 int main(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextFlags(GLUT_DEBUG);
-	glutInitWindowSize(width, width);
+	glutInitWindowSize(width + 150, width);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	main_window = glutCreateWindow("Volume Render of a Present");
 	cyGL::PrintVersion();
@@ -455,12 +470,11 @@ int main(int argc, char* argv[])
 	glutMotionFunc(move);
 	glutSpecialFunc(reset);
 
-	GLUI *glui = GLUI_Master.create_glui("GLUI");
-	new GLUI_Checkbox(glui, "Wireframe", &wireframe);
-	(new GLUI_Spinner(glui, "Segments:",&segments))
-		->set_int_limits(3, 60);
-
-	glui->set_main_gfx_window(main_window);
+	GLUI *glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
+	 glui->add_checkbox("Wireframe", &wireframe);
+	 GLUI_Spinner * spinner = glui->add_spinner("Segments:", GLUI_SPINNER_INT, &segments);
+	spinner->set_int_limits(3, 60);
+	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
 
 
 	glutMainLoop();
