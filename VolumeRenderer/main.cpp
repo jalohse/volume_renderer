@@ -45,6 +45,9 @@ cyMatrix4f lightProj = cyMatrix4f::MatrixPerspective(M_PI / 8, 1, 20, 200);
 cyMatrix4f bias = cyMatrix4f::MatrixTrans(cyPoint3f(0.5f, 0.5f, 0.495f)) * cyMatrix4f::MatrixScale(0.5f, 0.5f, 0.5f);
 cyMatrix4f teapotLightMVP;
 
+float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
+
 const int SMALL_VOL_X = 246;
 const int SMALL_VOL_Y = 246;
 const int SMALL_VOL_Z = 221;
@@ -216,6 +219,7 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	volume_shaders.Bind();
+	volume_shaders.SetUniform(1, cameraTransformationMatrix);
 	glBindVertexArray(vertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
@@ -420,6 +424,17 @@ int wireframe = 0;
 int segments = 8;
 int main_window;
 
+void myGlutIdle(void)
+{
+	// make sure the main window is active
+	if (glutGetWindow() != main_window)
+		glutSetWindow(main_window);
+
+	// if you have moving objects, you can do that here
+
+	// just keep redrawing the scene over and over
+	glutPostRedisplay();
+}
 
 void myGlutReshape(int x, int y)
 {
@@ -433,6 +448,12 @@ void myGlutReshape(int x, int y)
 	glFrustum(-xy_aspect*.08, xy_aspect*.08, -.08, .08, .1, 15.0);
 
 	glutPostRedisplay();
+}
+
+void onRotate(int param)
+{
+	totalRotationMatrix = cyMatrix4f(rotation) * totalRotationMatrix;
+	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
 }
 
 int main(int argc, char* argv[])
@@ -471,10 +492,12 @@ int main(int argc, char* argv[])
 	glutSpecialFunc(reset);
 
 	GLUI *glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
-	 glui->add_checkbox("Wireframe", &wireframe);
+	GLUI_Rotation *rotator= glui->add_rotation("Rotation", rotation, 2, onRotate);
+	rotator->set_spin(0);
 	 GLUI_Spinner * spinner = glui->add_spinner("Segments:", GLUI_SPINNER_INT, &segments);
 	spinner->set_int_limits(3, 60);
 	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
+	GLUI_Master.set_glutIdleFunc(myGlutIdle);
 
 
 	glutMainLoop();
