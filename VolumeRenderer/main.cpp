@@ -45,8 +45,10 @@ cyMatrix4f lightProj = cyMatrix4f::MatrixPerspective(M_PI / 8, 1, 20, 200);
 cyMatrix4f bias = cyMatrix4f::MatrixTrans(cyPoint3f(0.5f, 0.5f, 0.495f)) * cyMatrix4f::MatrixScale(0.5f, 0.5f, 0.5f);
 cyMatrix4f teapotLightMVP;
 
+// GLUI vars
 float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
+int main_window;
 
 const int SMALL_VOL_X = 246;
 const int SMALL_VOL_Y = 246;
@@ -420,19 +422,11 @@ bool loadDatFileToTexture(char* name)
 	return true;
 }
 
-int wireframe = 0;
-int segments = 8;
-int main_window;
-
 void myGlutIdle(void)
 {
-	// make sure the main window is active
 	if (glutGetWindow() != main_window)
 		glutSetWindow(main_window);
 
-	// if you have moving objects, you can do that here
-
-	// just keep redrawing the scene over and over
 	glutPostRedisplay();
 }
 
@@ -454,6 +448,39 @@ void onRotate(int param)
 {
 	totalRotationMatrix = cyMatrix4f(rotation) * totalRotationMatrix;
 	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
+}
+
+void addFloatSpinner(char *title, GLUI_Panel *panel, GLUI *glui)
+{
+	glui->add_spinner_to_panel(panel, title, GLUI_SPINNER_FLOAT)
+		->set_float_limits(0.0, 1.0);
+}
+
+void addTransferValuePanel(char *title, GLUI_Panel *panel, GLUI *glui)
+{
+	GLUI_Panel *firstVal = glui->add_panel_to_panel(panel, title);
+	addFloatSpinner("Value: ", firstVal, glui);
+	addFloatSpinner("R: ", firstVal, glui);
+	addFloatSpinner("G: ", firstVal, glui);
+	addFloatSpinner("B: ", firstVal, glui);
+}
+
+void setUpGLUI()
+{
+	GLUI *glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
+	GLUI_Rotation *rotator = glui->add_rotation("Rotation", rotation, 2, onRotate);
+	rotator->set_spin(0);
+
+	GLUI_Panel *transferPanel = glui->add_panel("Transfer Function");
+
+	addTransferValuePanel("Value 1: ", transferPanel, glui);
+	addTransferValuePanel("Value 2: ", transferPanel, glui);
+	addTransferValuePanel("Value 3: ", transferPanel, glui);
+	addTransferValuePanel("Value 4: ", transferPanel, glui);
+
+
+	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
+	GLUI_Master.set_glutIdleFunc(myGlutIdle);
 }
 
 int main(int argc, char* argv[])
@@ -491,13 +518,7 @@ int main(int argc, char* argv[])
 	glutMotionFunc(move);
 	glutSpecialFunc(reset);
 
-	GLUI *glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
-	GLUI_Rotation *rotator= glui->add_rotation("Rotation", rotation, 2, onRotate);
-	rotator->set_spin(0);
-	 GLUI_Spinner * spinner = glui->add_spinner("Segments:", GLUI_SPINNER_INT, &segments);
-	spinner->set_int_limits(3, 60);
-	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
-	GLUI_Master.set_glutIdleFunc(myGlutIdle);
+	setUpGLUI();
 
 
 	glutMainLoop();
