@@ -50,6 +50,7 @@ GLUI *glui;
 float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
 int main_window;
+float minVal = 0.1;
 float val1 = 0.2;
 cyPoint4f val1rgba = cyPoint4f(1.0, 0.5, 0.0, 0.2);
 float val2 = 0.3;
@@ -231,6 +232,11 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	volume_shaders.Bind();
 	volume_shaders.SetUniform(1, cameraTransformationMatrix);
+	volume_shaders.SetUniform(7, minVal);
+	cyPoint4f tfVals = cyPoint4f(val1, val2, val3, val4);
+	volume_shaders.SetUniform(8, tfVals);
+	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
+	volume_shaders.SetUniform(9, rgbas);
 	glBindVertexArray(vertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
@@ -360,6 +366,14 @@ void createObj()
 	volume_shaders.SetUniform(5, hitPointExit);
 	volume_shaders.RegisterUniform(6, "viewDir");
 	volume_shaders.SetUniform(6, viewDir);
+	volume_shaders.RegisterUniform(7, "minimumValue");
+	volume_shaders.SetUniform(7, minVal);
+	cyPoint4f tfVals = cyPoint4f(val1, val2, val3, val4);
+	volume_shaders.RegisterUniform(8, "tfVals");
+	volume_shaders.SetUniform(7, tfVals);
+	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
+	volume_shaders.RegisterUniform(9, "rgbaVals");
+	volume_shaders.SetUniform(8, rgbas);
 
 	GLuint vertexBufferObj[2];
 	GLuint textureBufferObj[1];
@@ -467,7 +481,7 @@ void addFloatSpinner(char *title, float *value, GLUI_Panel *panel)
 
 void addTransferValuePanel(char *title, float &value, cyPoint4f &rgbaValue, GLUI_Panel *panel)
 {
-	GLUI_Panel *valuePanel = glui->add_panel_to_panel(panel, title);
+	GLUI_Panel *valuePanel = glui->add_rollout_to_panel(panel, title);
 	addFloatSpinner("Value: ", &value, valuePanel);
 	addFloatSpinner("R: ", &rgbaValue.x, valuePanel);
 	addFloatSpinner("G: ", &rgbaValue.y, valuePanel);
@@ -481,8 +495,9 @@ void setUpGLUI()
 	GLUI_Rotation *rotator = glui->add_rotation("Rotation", rotation, 2, onRotate);
 	rotator->set_spin(0);
 
-	GLUI_Panel *transferPanel = glui->add_panel("Transfer Function");
+	GLUI_Panel *transferPanel = glui->add_rollout("Transfer Function");
 
+	addFloatSpinner("Minimum value: ", &minVal, transferPanel);
 	addTransferValuePanel("Value 1: ", val1, val1rgba, transferPanel);
 	addTransferValuePanel("Value 2: ", val2, val2rgba, transferPanel);
 	addTransferValuePanel("Value 3: ", val3, val3rgba, transferPanel);
