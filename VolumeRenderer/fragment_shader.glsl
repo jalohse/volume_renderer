@@ -22,7 +22,7 @@ void main() {
 	float step = 1.0 / 10.0;
 	for(int i = 0; i < 100; i++){
 		vec3 samplePosition = rayStart + (t * viewDir);
-		vec4 texVal = texture(tex, vec3(texCoor.x, texCoor.y, t));
+		vec4 texVal = texture(tex, vec3(texCoor.x, texCoor.y, t);
 		if(texVal.r > minimumValue && texVal.r < tfVals.x) {
 			builtUpColor += rgbaVals[0];
 		} else if(texVal.r >= tfVals.x && texVal.r < tfVals.y) {

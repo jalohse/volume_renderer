@@ -38,7 +38,7 @@ int movement = 0;
 std::vector<cyPoint3f> vertices;
 std::vector<cyPoint3f> textureVertices;
 std::vector<cyPoint3f> normals;
-cyPoint3f origin = cyPoint3f(0, 0, 50);
+cyPoint3f origin = cyPoint3f(0, 0, 5);
 cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 cyMatrix4f lightView = cyMatrix4f::MatrixView(lightVector, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 cyMatrix4f lightProj = cyMatrix4f::MatrixPerspective(M_PI / 8, 1, 20, 200);
@@ -50,12 +50,12 @@ GLUI *glui;
 float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
 int main_window;
-float minVal = 0.1;
-float val1 = 0.2;
+float minVal = 0.4171;
+float val1 = 0.60316;
 cyPoint4f val1rgba = cyPoint4f(1.0, 0.5, 0.0, 0.2);
-float val2 = 0.3;
+float val2 = 0.700268;
 cyPoint4f val2rgba = cyPoint4f(0.0, 1.0, 0.0, 0.2);
-float val3 = 0.4;
+float val3 = 1.0;
 cyPoint4f val3rgba = cyPoint4f(1.0, 0.0, 1.0, 0.2);
 float val4 = 1;
 cyPoint4f val4rgba = cyPoint4f(1.0, 1.0, 0.0, 0.2);
@@ -98,7 +98,7 @@ void setInitialRotationAndTranslation()
 cyPoint3f getTextureVertexFor(cyPoint3f pt)
 {
 
-	return (pt / 20) + 0.5;
+	return pt  + 0.5;
 }
 
 void findMinMax(float &min, float &max, float min1, float min2, float max1, float max2)
@@ -328,9 +328,9 @@ void populateVerticesAndNormals() {
 	vertices = {};
 	for (int i = 0; i < mesh.NF(); i = i + 1) {
 		cy::TriMesh::TriFace face = mesh.F(i);
-		vertices.push_back(mesh.V(face.v[0]));
-		vertices.push_back(mesh.V(face.v[1]));
-		vertices.push_back(mesh.V(face.v[2]));
+		vertices.push_back(mesh.V(face.v[0])/20);
+		vertices.push_back(mesh.V(face.v[1])/20);
+		vertices.push_back(mesh.V(face.v[2])/20);
 		cy::TriMesh::TriFace nface = mesh.FN(i);
 		normals.push_back(mesh.VN(nface.v[0]).GetNormalized());
 		normals.push_back(mesh.VN(nface.v[1]).GetNormalized());
