@@ -20,20 +20,25 @@ void main() {
 	float alpha = 0.0f;
 	float t = 0;
 	float step = 1.0 / 10.0;
-	for(int i = 0; i < 100; i++){
-		vec3 samplePosition = rayStart + (t * viewDir);
-		vec4 texVal = texture(tex, vec3(texCoor.x, texCoor.y, t);
+	vec3 samplePosition = rayEnd + (t * viewDir);
+	while(samplePosition.x < 0.5 && samplePosition.y < 0.5 && samplePosition.z < 0.5){
+		vec4 texVal = texture(tex, vec3(texCoor.x , texCoor.y, samplePosition.z + 0.5));
 		if(texVal.r > minimumValue && texVal.r < tfVals.x) {
 			builtUpColor += rgbaVals[0];
+			alpha += rgbaVals[0][3];
 		} else if(texVal.r >= tfVals.x && texVal.r < tfVals.y) {
 			builtUpColor += rgbaVals[1];
+			alpha += rgbaVals[1][3];
 		} else if(texVal.r >= tfVals.y && texVal.r < tfVals.z) {
 			builtUpColor += rgbaVals[2];
+			alpha += rgbaVals[2][3];
 		} else if(texVal.r >= tfVals.z && texVal.r < tfVals.w) {
 			builtUpColor += rgbaVals[3];
+			alpha += rgbaVals[3][3];
 		}
 		t += step;
+		samplePosition = rayEnd + (t * viewDir);
 	}
-	color = builtUpColor + ambientColor;
+	color = builtUpColor;
 
 }

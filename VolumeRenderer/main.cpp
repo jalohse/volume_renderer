@@ -8,9 +8,8 @@
 #include "cyMatrix.h"
 #include "cyGL.h"
 #include <algorithm>
-#include <limits>
-
-
+#include "Eigen/Dense"
+using namespace Eigen;
 
 #define width 300
 #define far_plane 500.0f
@@ -93,6 +92,20 @@ void setInitialRotationAndTranslation()
 
 	lightRotationMatrix = cyMatrix4f::MatrixRotationX(0);
 	teapotLightMVP = lightProj * lightView * cameraTransformationMatrix;
+}
+
+void transformPtBackToObjectSpace(cyPoint3f& pt, cyMatrix4f transformationMatrix)
+{
+	Eigen::Matrix4f m;
+	m << transformationMatrix.data[0], transformationMatrix.data[4], transformationMatrix.data[8], transformationMatrix.data[12],
+		transformationMatrix.data[1], transformationMatrix.data[5], transformationMatrix.data[9], transformationMatrix.data[13],
+		transformationMatrix.data[2], transformationMatrix.data[6], transformationMatrix.data[10], transformationMatrix.data[14],
+		transformationMatrix.data[3], transformationMatrix.data[7], transformationMatrix.data[11], transformationMatrix.data[15];
+	Vector4f  v(pt.x, pt.y, pt.z, 1.0f);
+	Vector4f back = m.inverse() * v;
+	cyPoint4f newVal = cyPoint4f(back[0], back[1], back[2], back[3]);
+	newVal = newVal / newVal.w;
+	pt = cyPoint3f(newVal);
 }
 
 cyPoint3f getTextureVertexFor(cyPoint3f pt)
@@ -207,8 +220,8 @@ cyPoint3f transformToGlobal(cyPoint3f pt, cyMatrix4f transformationMatrix)
 void populateRayEndStart()
 {
 	cyMatrix4f transformationMatrix = perspectiveMatrix * view * cameraTransformationMatrix;
-	cyPoint3f transformedMeshMin = transformToGlobal(mesh.GetBoundMin(), transformationMatrix);
-	cyPoint3f transformedMeshMax = transformToGlobal(mesh.GetBoundMax(), transformationMatrix);
+	cyPoint3f transformedMeshMin = transformToGlobal(mesh.GetBoundMin()/20, transformationMatrix);
+	cyPoint3f transformedMeshMax = transformToGlobal(mesh.GetBoundMax()/20, transformationMatrix);
 	transformedMaxX = transformedMeshMax.x > transformedMeshMin.x ? transformedMeshMax.x : transformedMeshMin.x;
 	transformedMinX = transformedMeshMax.x > transformedMeshMin.x ? transformedMeshMin.x : transformedMeshMax.x;
 	transformedMaxY = transformedMeshMax.y > transformedMeshMin.y ? transformedMeshMax.y : transformedMeshMin.y;
@@ -223,15 +236,20 @@ void populateRayEndStart()
 	float tValExit = 0.0;
 	getBoxIntersectionPts(tValEnter, tValExit, transformedCameraPos, viewDir);
 	hitPointEnter = transformedCameraPos + (tValEnter * viewDir);
+	transformPtBackToObjectSpace(hitPointEnter, transformationMatrix);
     hitPointExit = transformedCameraPos + (tValExit * viewDir);
+	transformPtBackToObjectSpace(hitPointExit, transformationMatrix);
 
 }
 
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	populateRayEndStart();
 	volume_shaders.Bind();
 	volume_shaders.SetUniform(1, cameraTransformationMatrix);
+	volume_shaders.SetUniform(4, hitPointEnter);
+	volume_shaders.SetUniform(5, hitPointExit);
 	volume_shaders.SetUniform(7, minVal);
 	cyPoint4f tfVals = cyPoint4f(val1, val2, val3, val4);
 	volume_shaders.SetUniform(8, tfVals);
