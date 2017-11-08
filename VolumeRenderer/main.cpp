@@ -236,7 +236,7 @@ void createObj()
 	volume_shaders.SetUniform(2, perspectiveMatrix);
 	volume_shaders.RegisterUniform(3, "view");
 	volume_shaders.SetUniform(3, view);
-	volume_shaders.RegisterUniform(4, "origin");
+	volume_shaders.RegisterUniform(4, "cameraPos");
 	volume_shaders.SetUniform(4, origin);
 	volume_shaders.RegisterUniform(5, "numSamples");
 	volume_shaders.SetUniform(5, numSamples);

@@ -10,10 +10,11 @@ out vec3 camerapos;
 uniform mat4 cameraTransformation;
 uniform mat4 perspective;
 uniform mat4 view;
-uniform vec3 origin;
+uniform vec3 cameraPos;
 
 void main() {
 	gl_Position = perspective * view * cameraTransformation * vec4(pos, 1);
 	texCoor =  texCoordinate;
-	camerapos = vec3(cameraTransformation * vec4(origin, 1));
+	mat4 inverse = inverse(view * cameraTransformation);
+	camerapos = vec3(inverse * vec4(cameraPos, 1));
 }
