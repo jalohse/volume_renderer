@@ -37,7 +37,7 @@ int movement = 0;
 std::vector<cyPoint3f> vertices;
 std::vector<cyPoint3f> textureVertices;
 std::vector<cyPoint3f> normals;
-cyPoint3f origin = cyPoint3f(0, 0, 5);
+cyPoint3f origin = cyPoint3f(0, 0, 2);
 cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 cyMatrix4f lightView = cyMatrix4f::MatrixView(lightVector, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 cyMatrix4f lightProj = cyMatrix4f::MatrixPerspective(M_PI / 8, 1, 20, 200);
@@ -49,6 +49,7 @@ GLUI *glui;
 float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
 int main_window;
+int numSamples = 10;
 float minVal = 0.4171;
 float val1 = 0.60316;
 cyPoint4f val1rgba = cyPoint4f(1.0, 0.5, 0.0, 0.2);
@@ -94,19 +95,6 @@ void setInitialRotationAndTranslation()
 	teapotLightMVP = lightProj * lightView * cameraTransformationMatrix;
 }
 
-void transformPtBackToObjectSpace(cyPoint3f& pt, cyMatrix4f transformationMatrix)
-{
-	Eigen::Matrix4f m;
-	m << transformationMatrix.data[0], transformationMatrix.data[4], transformationMatrix.data[8], transformationMatrix.data[12],
-		transformationMatrix.data[1], transformationMatrix.data[5], transformationMatrix.data[9], transformationMatrix.data[13],
-		transformationMatrix.data[2], transformationMatrix.data[6], transformationMatrix.data[10], transformationMatrix.data[14],
-		transformationMatrix.data[3], transformationMatrix.data[7], transformationMatrix.data[11], transformationMatrix.data[15];
-	Vector4f  v(pt.x, pt.y, pt.z, 1.0f);
-	Vector4f back = m.inverse() * v;
-	cyPoint4f newVal = cyPoint4f(back[0], back[1], back[2], back[3]);
-	newVal = newVal / newVal.w;
-	pt = cyPoint3f(newVal);
-}
 
 cyPoint3f getTextureVertexFor(cyPoint3f pt)
 {
@@ -114,147 +102,18 @@ cyPoint3f getTextureVertexFor(cyPoint3f pt)
 	return pt  + 0.5;
 }
 
-void findMinMax(float &min, float &max, float min1, float min2, float max1, float max2)
-{
-	if (min1 != -FLT_MAX  && min2 != -FLT_MAX)
-	{
-		min = (min2 > min1) ? min2 : min1;
-	}
-	else if (min1 == -FLT_MAX)
-	{
-		min = min2;
-	}
-	else
-	{
-		min = min1;
-	}
-	if (max1 != FLT_MAX  && max2 != FLT_MAX)
-	{
-		max = (max2 < max1) ? max2 : max1;
-	}
-	else if (max1 == FLT_MAX)
-	{
-		max = max2;
-	}
-	else
-	{
-		max = max1;
-	}
-}
-
-void getBoxIntersectionPts(float &t, float &t1, cyPoint3f tranformedCameraPos, cyPoint3f viewDir)
-{
-	float tMin = -FLT_MAX;
-	float tMax = FLT_MAX;
-	float tXMin;
-	float tXMax;
-	if (viewDir.x == 0)
-	{
-		tXMin = -FLT_MAX;
-		tXMax = FLT_MAX;
-	}
-	else {
-		tXMin = (transformedMinX - tranformedCameraPos.x) / viewDir.x;
-		tXMax = (transformedMaxX - tranformedCameraPos.x) / viewDir.x;
-	}
-	if (tXMin > tXMax)
-	{
-		std::swap(tXMin, tXMax);
-	}
-	float tYMin;
-	float tYMax;
-	if (viewDir.y == 0)
-	{
-		tYMin = -FLT_MAX;
-		tYMax = FLT_MAX;
-	}
-	else {
-		tYMin = (transformedMinY - tranformedCameraPos.y) / viewDir.y;
-		tYMax = (transformedMaxY - tranformedCameraPos.y) / viewDir.y;
-	}
-	if (tYMin > tYMax)
-	{
-		std::swap(tYMin, tYMax);
-	}
-	if ((tXMin > tYMax) || (tYMin > tXMax))
-	{
-		t = -1;
-		t1 = -1;
-	}
-	findMinMax(tMin, tMax, tXMin, tYMin, tXMax, tYMax);
-	float tZMin;
-	float tZMax;
-	if (viewDir.z == 0)
-	{
-		tZMin = -FLT_MAX;
-		tZMax = FLT_MAX;
-	}
-	else {
-		tZMin = (transformedMinZ - tranformedCameraPos.z) / viewDir.z;
-		tZMax = (transformedMaxZ - tranformedCameraPos.z) / viewDir.z;
-	}
-	if (tZMin > tZMax)
-	{
-		std::swap(tZMin, tZMax);
-	}
-	if ((tMin > tZMax) || (tZMin > tMax))
-	{
-		t = -1;
-		t1 = -1;
-	}
-	findMinMax(tMin, tMax, tZMin, tMin, tZMax, tMax);
-	t = tMin;
-	t1 = tMax;
-}
-
-cyPoint3f transformToGlobal(cyPoint3f pt, cyMatrix4f transformationMatrix)
-{
-	cyPoint4f transformedPt = transformationMatrix * cyPoint4f(pt, 1);
-	if (transformedPt.w != 0)
-	{
-		transformedPt = transformedPt / transformedPt.w;
-	}
-	return cyPoint3f(transformedPt);
-}
-
-void populateRayEndStart()
-{
-	cyMatrix4f transformationMatrix = perspectiveMatrix * view * cameraTransformationMatrix;
-	cyPoint3f transformedMeshMin = transformToGlobal(mesh.GetBoundMin()/20, transformationMatrix);
-	cyPoint3f transformedMeshMax = transformToGlobal(mesh.GetBoundMax()/20, transformationMatrix);
-	transformedMaxX = transformedMeshMax.x > transformedMeshMin.x ? transformedMeshMax.x : transformedMeshMin.x;
-	transformedMinX = transformedMeshMax.x > transformedMeshMin.x ? transformedMeshMin.x : transformedMeshMax.x;
-	transformedMaxY = transformedMeshMax.y > transformedMeshMin.y ? transformedMeshMax.y : transformedMeshMin.y;
-	transformedMinY = transformedMeshMax.y > transformedMeshMin.y ? transformedMeshMin.y : transformedMeshMax.y;
-	transformedMaxZ = transformedMeshMax.z > transformedMeshMin.z ? transformedMeshMax.z : transformedMeshMin.z;
-	transformedMinZ = transformedMeshMax.z > transformedMeshMin.z ? transformedMeshMin.z : transformedMeshMax.z;
-	cyPoint3f transformedCameraPos = transformToGlobal(origin, transformationMatrix);
-	cyPoint3f transformedOrigin = transformToGlobal(cyPoint3f(0, 0, 0), transformationMatrix);
-	viewDir = transformedOrigin - transformedCameraPos;
-
-	float tValEnter = 0.0;
-	float tValExit = 0.0;
-	getBoxIntersectionPts(tValEnter, tValExit, transformedCameraPos, viewDir);
-	hitPointEnter = transformedCameraPos + (tValEnter * viewDir);
-	transformPtBackToObjectSpace(hitPointEnter, transformationMatrix);
-    hitPointExit = transformedCameraPos + (tValExit * viewDir);
-	transformPtBackToObjectSpace(hitPointExit, transformationMatrix);
-
-}
 
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	populateRayEndStart();
 	volume_shaders.Bind();
 	volume_shaders.SetUniform(1, cameraTransformationMatrix);
-	volume_shaders.SetUniform(4, hitPointEnter);
-	volume_shaders.SetUniform(5, hitPointExit);
-	volume_shaders.SetUniform(7, minVal);
+	volume_shaders.SetUniform(5, numSamples);
+	volume_shaders.SetUniform(6, minVal);
 	cyPoint4f tfVals = cyPoint4f(val1, val2, val3, val4);
-	volume_shaders.SetUniform(8, tfVals);
+	volume_shaders.SetUniform(7, tfVals);
 	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
-	volume_shaders.SetUniform(9, rgbas);
+	volume_shaders.SetUniform(8, rgbas);
 	glBindVertexArray(vertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
@@ -367,7 +226,6 @@ void createObj()
 
 	setInitialRotationAndTranslation();
 	populateVerticesAndNormals();
-	populateRayEndStart();
 
 	volume_shaders = cy::GLSLProgram();
 	volume_shaders.BuildFiles("vertex_shader.glsl", "fragment_shader.glsl");
@@ -378,19 +236,17 @@ void createObj()
 	volume_shaders.SetUniform(2, perspectiveMatrix);
 	volume_shaders.RegisterUniform(3, "view");
 	volume_shaders.SetUniform(3, view);
-	volume_shaders.RegisterUniform(4, "rayStart");
-	volume_shaders.SetUniform(4, hitPointEnter);
-	volume_shaders.RegisterUniform(5, "rayEnd");
-	volume_shaders.SetUniform(5, hitPointExit);
-	volume_shaders.RegisterUniform(6, "viewDir");
-	volume_shaders.SetUniform(6, viewDir);
-	volume_shaders.RegisterUniform(7, "minimumValue");
-	volume_shaders.SetUniform(7, minVal);
+	volume_shaders.RegisterUniform(4, "origin");
+	volume_shaders.SetUniform(4, origin);
+	volume_shaders.RegisterUniform(5, "numSamples");
+	volume_shaders.SetUniform(5, numSamples);
+	volume_shaders.RegisterUniform(6, "minimumValue");
+	volume_shaders.SetUniform(6, minVal);
 	cyPoint4f tfVals = cyPoint4f(val1, val2, val3, val4);
-	volume_shaders.RegisterUniform(8, "tfVals");
+	volume_shaders.RegisterUniform(7, "tfVals");
 	volume_shaders.SetUniform(7, tfVals);
 	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
-	volume_shaders.RegisterUniform(9, "rgbaVals");
+	volume_shaders.RegisterUniform(8, "rgbaVals");
 	volume_shaders.SetUniform(8, rgbas);
 
 	GLuint vertexBufferObj[2];
@@ -512,6 +368,9 @@ void setUpGLUI()
 	glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
 	GLUI_Rotation *rotator = glui->add_rotation("Rotation", rotation, 2, onRotate);
 	rotator->set_spin(0);
+
+	glui->add_spinner("Number of Samples", GLUI_SPINNER_INT, &numSamples)
+		->set_float_limits(0.0, 1000.0);
 
 	GLUI_Panel *transferPanel = glui->add_rollout("Transfer Function");
 
