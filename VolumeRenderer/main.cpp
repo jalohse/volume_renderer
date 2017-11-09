@@ -48,6 +48,9 @@ cyMatrix4f teapotLightMVP;
 GLUI *glui;
 float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
+float rotation_x;
+float rotation_y;
+float rotation_z;
 int main_window;
 int numSamples = 10;
 float minVal = 0.4171;
@@ -343,7 +346,21 @@ void myGlutReshape(int x, int y)
 
 void onRotate(int param)
 {
-	totalRotationMatrix = cyMatrix4f(rotation) * totalRotationMatrix;
+	if (param == 2) {
+		totalRotationMatrix = cyMatrix4f(rotation) * totalRotationMatrix;
+	}
+	else if (param == 3) {
+		rotation_x += 0.1;
+		totalRotationMatrix = cyMatrix4f::MatrixRotationX(rotation_x) * totalRotationMatrix;
+	}
+	else if (param == 4) {
+		rotation_y += 0.1;
+		totalRotationMatrix = cyMatrix4f::MatrixRotationY(rotation_y) * totalRotationMatrix;
+	}
+	else if (param == 5) {
+		rotation_z += 0.1;
+		totalRotationMatrix = cyMatrix4f::MatrixRotationZ(rotation_z) * totalRotationMatrix;
+	}
 	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
 }
 
@@ -366,8 +383,12 @@ void addTransferValuePanel(char *title, float &value, cyPoint4f &rgbaValue, GLUI
 void setUpGLUI()
 {
 	glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
-	GLUI_Rotation *rotator = glui->add_rotation("Rotation", rotation, 2, onRotate);
-	rotator->set_spin(0);
+
+	GLUI_Panel *rotationPanel = glui->add_rollout("Rotation");
+	glui->add_rotation_to_panel(rotationPanel, "Rotation", rotation, 2, onRotate)->set_spin(0);
+	glui->add_button_to_panel(rotationPanel, "Rotate X", 3, onRotate);
+	glui->add_button_to_panel(rotationPanel, "Rotate Y", 4, onRotate);
+	glui->add_button_to_panel(rotationPanel, "Rotate Z", 5, onRotate);
 
 	glui->add_spinner("Number of Samples", GLUI_SPINNER_INT, &numSamples)
 		->set_float_limits(0.0, 1000.0);
