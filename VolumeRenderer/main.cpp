@@ -59,6 +59,10 @@ float volume_rotation_z;
 float light_rotation_x;
 float light_rotation_y;
 float light_rotation_z;
+float light_translate_xy [2] = {0, 0};
+float light_translate_x [1] = {0};
+float light_translate_y [1] = {0};
+float light_translate_z [1] = {0};
 int main_window;
 int numSamples = 30;
 float minVal = 0.3985;
@@ -444,6 +448,26 @@ void onLightRotate(int param)
 	lightCameraTransformationMatrix = lightTransformationMatrix * lightRotationMatrix;
 }
 
+void onLightTranslate(int param)
+{
+	cyPoint3f translation;
+	if(param == 0)
+	{
+		translation = cyPoint3f(light_translate_xy[0], light_translate_xy[1], 0);
+	} else if (param == 1)
+	{
+		translation = cyPoint3f(light_translate_x[0], 0, 0);
+	} else if (param == 2)
+	{
+		translation = cyPoint3f(0, light_translate_y[0], 0);
+	} else if (param == 3)
+	{
+		translation = cyPoint3f(0, 0, light_translate_z[0]);
+	}
+	lightTransformationMatrix = cyMatrix4f::MatrixTrans(translation) * lightTransformationMatrix;
+	lightCameraTransformationMatrix = lightTransformationMatrix * lightRotationMatrix;
+}
+
 void addFloatSpinner(char* title, float* value, GLUI_Panel* panel)
 {
 	glui->add_spinner_to_panel(panel, title, GLUI_SPINNER_FLOAT, value)
@@ -458,6 +482,26 @@ void addTransferValuePanel(char* title, float& value, cyPoint4f& rgbaValue, GLUI
 	addFloatSpinner("G: ", &rgbaValue.y, valuePanel);
 	addFloatSpinner("B: ", &rgbaValue.z, valuePanel);
 	addFloatSpinner("A: ", &rgbaValue.w, valuePanel);
+}
+
+void addLightPanel()
+{
+	GLUI_Panel* lightPanel = glui->add_rollout("Light Values", false);
+	GLUI_Panel* lightRotationPanel = glui->add_rollout_to_panel(lightPanel, "Light Rotation");
+	glui->add_rotation_to_panel(lightRotationPanel, "Rotation", light_rotation, 2, onLightRotate)->set_spin(0);
+	glui->add_button_to_panel(lightRotationPanel, "Rotate X", 3, onLightRotate);
+	glui->add_button_to_panel(lightRotationPanel, "Rotate Y", 4, onLightRotate);
+	glui->add_button_to_panel(lightRotationPanel, "Rotate Z", 5, onLightRotate);
+
+	GLUI_Panel* lightTransformPanel = glui->add_rollout_to_panel(lightPanel, "Light Movement");
+	glui->add_translation_to_panel(lightTransformPanel, "Translate XY", GLUI_TRANSLATION_XY,
+		light_translate_xy, 0, onLightTranslate)->set_speed(0.0002);
+	glui->add_translation_to_panel(lightTransformPanel, "Translate X", GLUI_TRANSLATION_X,
+		light_translate_x, 1, onLightTranslate)->set_speed(0.0002);
+	glui->add_translation_to_panel(lightTransformPanel, "Translate Y", GLUI_TRANSLATION_Y,
+		light_translate_y, 2, onLightTranslate)->set_speed(0.0002);
+	glui->add_translation_to_panel(lightTransformPanel, "Translate Z", GLUI_TRANSLATION_Z,
+		light_translate_z, 3, onLightTranslate)->set_speed(0.0002);
 }
 
 void setUpGLUI()
@@ -481,12 +525,7 @@ void setUpGLUI()
 	addTransferValuePanel("Value 3: ", val3, val3rgba, transferPanel);
 	addTransferValuePanel("Value 4: ", val4, val4rgba, transferPanel);
 
-	GLUI_Panel* lightRotationPanel = glui->add_rollout("Light Rotation", false);
-	glui->add_rotation_to_panel(lightRotationPanel, "Rotation", light_rotation, 2, onLightRotate)->set_spin(0);
-	glui->add_button_to_panel(lightRotationPanel, "Rotate X", 3, onLightRotate);
-	glui->add_button_to_panel(lightRotationPanel, "Rotate Y", 4, onLightRotate);
-	glui->add_button_to_panel(lightRotationPanel, "Rotate Z", 5, onLightRotate);
-
+	addLightPanel();
 
 	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
 	GLUI_Master.set_glutIdleFunc(myGlutIdle);
