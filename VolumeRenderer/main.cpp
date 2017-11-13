@@ -109,7 +109,7 @@ cyPoint3f transformToImageSpace(cyPoint3f point, cyMatrix4f transformationMatrix
 
 cyPoint3f findSweepStartPt(cyPoint3f lightDir)
 {
-	// Positive values are top/right, negative are bottom/left
+	// Positive values are top/right side, negative are bottom/left side
 	if(abs(lightDir.x) > abs(lightDir.y))
 	{
 		return cyPoint3f(lightDir.x, 0, 0);
@@ -120,6 +120,21 @@ cyPoint3f findSweepStartPt(cyPoint3f lightDir)
 
 }
 
+cyPoint3f findAdjustedSweepDir(cyPoint3f lightDir)
+{
+	lightDir.Normalize();
+	cyPoint3f adjustedX = cyPoint3f(0, lightDir.y, lightDir.z);
+	cyPoint3f adjustedY = cyPoint3f(lightDir.x, 0, lightDir.z);
+	float xAngle = acos(lightDir.Dot(adjustedX));
+	float yAngle = acos(lightDir.Dot(adjustedY));
+	if(xAngle < yAngle) {
+		return adjustedX;
+	} else
+	{
+		return adjustedY;
+	}
+}
+
 void computeSweepDirection()
 {
 	if (directionalLight == 0)
@@ -128,6 +143,7 @@ void computeSweepDirection()
 		cyPoint3f transformedOrigin = transformToImageSpace(cyPoint3f(0, 0, 0), cameraTransformationMatrix);
 		cyPoint3f lightDir = transformedLightPos - transformedOrigin;
 		cyPoint3f sweepStart = findSweepStartPt(lightDir);
+		cyPoint3f sweepDir = findAdjustedSweepDir(lightDir);
 	}
 }
 
