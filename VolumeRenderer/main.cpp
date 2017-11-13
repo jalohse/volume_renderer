@@ -45,13 +45,20 @@ cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0
 
 // GLUI vars
 GLUI* glui;
-float rotation[16] = {
+float volume_rotation[16] = {
 	1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 	0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0
 };
-float rotation_x;
-float rotation_y;
-float rotation_z;
+float light_rotation[16] = {
+	1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0
+};
+float volume_rotation_x;
+float volume_rotation_y;
+float volume_rotation_z;
+float light_rotation_x;
+float light_rotation_y;
+float light_rotation_z;
 int main_window;
 int numSamples = 30;
 float minVal = 0.3985;
@@ -118,6 +125,7 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 	light_shaders.Bind();
+	light_shaders.SetUniform(1, lightCameraTransformationMatrix);
 	glBindVertexArray(lightVertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
@@ -388,28 +396,52 @@ void myGlutReshape(int x, int y)
 	glutPostRedisplay();
 }
 
-void onRotate(int param)
+void onVolumeRotate(int param)
 {
 	if (param == 2)
 	{
-		totalRotationMatrix = cyMatrix4f(rotation) * totalRotationMatrix;
+		totalRotationMatrix = cyMatrix4f(volume_rotation) * totalRotationMatrix;
 	}
 	else if (param == 3)
 	{
-		rotation_x += 0.1;
-		totalRotationMatrix = cyMatrix4f::MatrixRotationX(rotation_x) * totalRotationMatrix;
+		volume_rotation_x += 0.1;
+		totalRotationMatrix = cyMatrix4f::MatrixRotationX(volume_rotation_x) * totalRotationMatrix;
 	}
 	else if (param == 4)
 	{
-		rotation_y += 0.1;
-		totalRotationMatrix = cyMatrix4f::MatrixRotationY(rotation_y) * totalRotationMatrix;
+		volume_rotation_y += 0.1;
+		totalRotationMatrix = cyMatrix4f::MatrixRotationY(volume_rotation_y) * totalRotationMatrix;
 	}
 	else if (param == 5)
 	{
-		rotation_z += 0.1;
-		totalRotationMatrix = cyMatrix4f::MatrixRotationZ(rotation_z) * totalRotationMatrix;
+		volume_rotation_z += 0.1;
+		totalRotationMatrix = cyMatrix4f::MatrixRotationZ(volume_rotation_z) * totalRotationMatrix;
 	}
 	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
+}
+
+void onLightRotate(int param)
+{
+	if (param == 2)
+	{
+		lightRotationMatrix = cyMatrix4f(light_rotation) * lightRotationMatrix;
+	}
+	else if (param == 3)
+	{
+		light_rotation_x += 0.1;
+		lightRotationMatrix = cyMatrix4f::MatrixRotationX(light_rotation_x) * lightRotationMatrix;
+	}
+	else if (param == 4)
+	{
+		light_rotation_y += 0.1;
+		lightRotationMatrix = cyMatrix4f::MatrixRotationY(light_rotation_y) * lightRotationMatrix;
+	}
+	else if (param == 5)
+	{
+		light_rotation_z += 0.1;
+		lightRotationMatrix = cyMatrix4f::MatrixRotationZ(light_rotation_z) * lightRotationMatrix;
+	}
+	lightCameraTransformationMatrix = lightTransformationMatrix * lightRotationMatrix;
 }
 
 void addFloatSpinner(char* title, float* value, GLUI_Panel* panel)
@@ -432,22 +464,28 @@ void setUpGLUI()
 {
 	glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
 
-	GLUI_Panel* rotationPanel = glui->add_rollout("Rotation");
-	glui->add_rotation_to_panel(rotationPanel, "Rotation", rotation, 2, onRotate)->set_spin(0);
-	glui->add_button_to_panel(rotationPanel, "Rotate X", 3, onRotate);
-	glui->add_button_to_panel(rotationPanel, "Rotate Y", 4, onRotate);
-	glui->add_button_to_panel(rotationPanel, "Rotate Z", 5, onRotate);
+	GLUI_Panel* volumeRotationPanel = glui->add_rollout("Volume Rotation");
+	glui->add_rotation_to_panel(volumeRotationPanel, "Rotation", volume_rotation, 2, onVolumeRotate)->set_spin(0);
+	glui->add_button_to_panel(volumeRotationPanel, "Rotate X", 3, onVolumeRotate);
+	glui->add_button_to_panel(volumeRotationPanel, "Rotate Y", 4, onVolumeRotate);
+	glui->add_button_to_panel(volumeRotationPanel, "Rotate Z", 5, onVolumeRotate);
 
 	glui->add_spinner("Number of Samples", GLUI_SPINNER_INT, &numSamples)
 	    ->set_float_limits(0.0, 1000.0);
 
-	GLUI_Panel* transferPanel = glui->add_rollout("Transfer Function");
+	GLUI_Panel* transferPanel = glui->add_rollout("Transfer Function", false);
 
 	addFloatSpinner("Minimum value: ", &minVal, transferPanel);
 	addTransferValuePanel("Value 1: ", val1, val1rgba, transferPanel);
 	addTransferValuePanel("Value 2: ", val2, val2rgba, transferPanel);
 	addTransferValuePanel("Value 3: ", val3, val3rgba, transferPanel);
 	addTransferValuePanel("Value 4: ", val4, val4rgba, transferPanel);
+
+	GLUI_Panel* lightRotationPanel = glui->add_rollout("Light Rotation", false);
+	glui->add_rotation_to_panel(lightRotationPanel, "Rotation", light_rotation, 2, onLightRotate)->set_spin(0);
+	glui->add_button_to_panel(lightRotationPanel, "Rotate X", 3, onLightRotate);
+	glui->add_button_to_panel(lightRotationPanel, "Rotate Y", 4, onLightRotate);
+	glui->add_button_to_panel(lightRotationPanel, "Rotate Z", 5, onLightRotate);
 
 
 	GLUI_Master.set_glutReshapeFunc(myGlutReshape);
