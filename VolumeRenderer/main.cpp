@@ -40,6 +40,9 @@ cyPoint3f lightPos = cyPoint3f(0, 1, 0);
 cyPoint3f origin = cyPoint3f(0, 0, 3.5);
 cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 
+cy::GLRenderTexture<GL_TEXTURE_2D> illumCacheIn;
+cy::GLRenderTexture<GL_TEXTURE_2D> illumCacheOut;
+
 // GLUI vars
 GLUI* glui;
 float volume_rotation[16] = {
@@ -150,6 +153,9 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	volume_shaders.Bind();
+	std::vector<cyPoint3f> sweepStartAndDir = computeSweepDirection();
+	illumCacheIn.BindTexture(0);
+	illumCacheOut.BindTexture(1);
 	volume_shaders.SetUniform(1, cameraTransformationMatrix);
 	volume_shaders.SetUniform(5, numSamples);
 	volume_shaders.SetUniform(6, minVal);
@@ -163,7 +169,6 @@ void display()
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	light_shaders.Bind();
-	std::vector<cyPoint3f> sweepStartAndDir = computeSweepDirection();
 	light_shaders.SetUniform(1, lightCameraTransformationMatrix);
 	glBindVertexArray(lightVertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -591,6 +596,10 @@ int main(int argc, char* argv[])
 	loadDatFileToTexture("present246x246x221.dat");
 	createObj();
 	createLightObj();
+
+	illumCacheIn.Initialize(true, 2, width + 150, width, cy::GL::TYPE_FLOAT);
+	illumCacheOut.Initialize(true, 2, width + 150, width, cy::GL::TYPE_FLOAT);
+
 
 	//glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
