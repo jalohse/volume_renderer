@@ -129,21 +129,18 @@ cyPoint3f findAdjustedSweepDir(cyPoint3f lightDir)
 	float yAngle = acos(lightDir.Dot(adjustedY));
 	if(xAngle < yAngle) {
 		return adjustedX;
-	} else
-	{
-		return adjustedY;
 	}
+	return adjustedY;
 }
 
-void computeSweepDirection()
+std::vector<cyPoint3f> computeSweepDirection()
 {
 	if (directionalLight == 0)
 	{
 		cyPoint3f transformedLightPos = transformToImageSpace(lightPos, lightCameraTransformationMatrix);
 		cyPoint3f transformedOrigin = transformToImageSpace(cyPoint3f(0, 0, 0), cameraTransformationMatrix);
 		cyPoint3f lightDir = transformedLightPos - transformedOrigin;
-		cyPoint3f sweepStart = findSweepStartPt(lightDir);
-		cyPoint3f sweepDir = findAdjustedSweepDir(lightDir);
+		return { findSweepStartPt(lightDir), findAdjustedSweepDir(lightDir) };
 	}
 }
 
@@ -151,6 +148,7 @@ void computeSweepDirection()
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	volume_shaders.Bind();
 	volume_shaders.SetUniform(1, cameraTransformationMatrix);
 	volume_shaders.SetUniform(5, numSamples);
@@ -162,8 +160,10 @@ void display()
 	glBindVertexArray(vertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	light_shaders.Bind();
-	computeSweepDirection();
+	std::vector<cyPoint3f> sweepStartAndDir = computeSweepDirection();
 	light_shaders.SetUniform(1, lightCameraTransformationMatrix);
 	glBindVertexArray(lightVertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
