@@ -11,7 +11,7 @@
 #include "Eigen/Dense"
 using namespace Eigen;
 
-#define width 300
+#define width 660
 #define far_plane 500.0f
 #define inital_z -70.0f
 #define fov_degrees 45.0f
@@ -40,13 +40,15 @@ std::vector<cyPoint3f> lightVertices;
 std::vector<cyPoint3f> textureVertices;
 std::vector<cyPoint3f> normals;
 cyPoint3f lightPos = cyPoint3f(0, 1, 0);
-cyPoint3f origin = cyPoint3f(0,0, 3.5);
+cyPoint3f origin = cyPoint3f(0, 0, 3.5);
 cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 
 // GLUI vars
-GLUI *glui;
-float rotation[16] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0 };
+GLUI* glui;
+float rotation[16] = {
+	1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0 , 0.0, 0.0, 0.0, 1.0
+};
 float rotation_x;
 float rotation_y;
 float rotation_z;
@@ -97,8 +99,7 @@ void setInitialRotationAndTranslation()
 
 cyPoint3f getTextureVertexFor(cyPoint3f pt)
 {
-
-	return pt  + 0.5;
+	return pt + 0.5;
 }
 
 
@@ -204,13 +205,15 @@ void reset(int key, int x, int y)
 	}
 }
 
-void populateVerticesAndNormals() {
+void populateVerticesAndNormals()
+{
 	vertices = {};
-	for (int i = 0; i < mesh.NF(); i = i + 1) {
+	for (int i = 0; i < mesh.NF(); i = i + 1)
+	{
 		cy::TriMesh::TriFace face = mesh.F(i);
-		vertices.push_back(mesh.V(face.v[0])/20);
-		vertices.push_back(mesh.V(face.v[1])/20);
-		vertices.push_back(mesh.V(face.v[2])/20);
+		vertices.push_back(mesh.V(face.v[0]) / 20);
+		vertices.push_back(mesh.V(face.v[1]) / 20);
+		vertices.push_back(mesh.V(face.v[2]) / 20);
 		cy::TriMesh::TriFace nface = mesh.FN(i);
 		normals.push_back(mesh.VN(nface.v[0]).GetNormalized());
 		normals.push_back(mesh.VN(nface.v[1]).GetNormalized());
@@ -221,7 +224,6 @@ void populateVerticesAndNormals() {
 
 void createObj()
 {
-	
 	mesh = cyTriMesh();
 	mesh.LoadFromFileObj("cube.obj");
 	mesh.ComputeBoundingBox();
@@ -263,14 +265,14 @@ void createObj()
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObj[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cyPoint3f) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, 0, sizeof(cyPoint3f), NULL);
+	glVertexAttribPointer(0, 3, GL_FLOAT, 0, sizeof(cyPoint3f), nullptr);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObj[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cyPoint3f) * normals.size(), &normals[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, 0, sizeof(cyPoint3f), NULL);
+	glVertexAttribPointer(1, 3, GL_FLOAT, 0, sizeof(cyPoint3f), nullptr);
 
-	for(int i = 0; i < vertices.size(); i++)
+	for (int i = 0; i < vertices.size(); i++)
 	{
 		textureVertices.push_back(getTextureVertexFor(vertices.at(i)));
 	}
@@ -279,22 +281,24 @@ void createObj()
 	glBindBuffer(GL_ARRAY_BUFFER, textureBufferObj[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cyPoint3f) * textureVertices.size(), &textureVertices[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, 0, sizeof(cyPoint3f), NULL);
+	glVertexAttribPointer(2, 3, GL_FLOAT, 0, sizeof(cyPoint3f), nullptr);
 
 	glBindVertexArray(0);
 }
 
-void createLightObj() {
+void createLightObj()
+{
 	lightObj = cyTriMesh();
 	lightObj.LoadFromFileObj("light.obj");
 	lightObj.ComputeBoundingBox();
 	lightObj.ComputeNormals();
 	lightVertices = {};
-	for (int i = 0; i < lightObj.NF(); i = i + 1) {
+	for (int i = 0; i < lightObj.NF(); i = i + 1)
+	{
 		cy::TriMesh::TriFace face = lightObj.F(i);
-		lightVertices.push_back(lightObj.V(face.v[0])/ 7);
-		lightVertices.push_back(lightObj.V(face.v[1])/ 7);
-		lightVertices.push_back(lightObj.V(face.v[2])/ 7);
+		lightVertices.push_back(lightObj.V(face.v[0]) / 7);
+		lightVertices.push_back(lightObj.V(face.v[1]) / 7);
+		lightVertices.push_back(lightObj.V(face.v[2]) / 7);
 	}
 
 	lightTransformationMatrix = cyMatrix4f::MatrixTrans(lightPos);
@@ -320,7 +324,7 @@ void createLightObj() {
 	glBindBuffer(GL_ARRAY_BUFFER, lightVertexBufferObj[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cyPoint3f) * lightVertices.size(), &lightVertices[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, 0, sizeof(cyPoint3f), NULL);
+	glVertexAttribPointer(0, 3, GL_FLOAT, 0, sizeof(cyPoint3f), nullptr);
 
 	glBindVertexArray(0);
 }
@@ -355,7 +359,7 @@ bool loadDatFileToTexture(char* name)
 		rgbaBuffer[i * 4 + 3] = val;
 	}
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, SMALL_VOL_X, SMALL_VOL_Y, SMALL_VOL_Z, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)rgbaBuffer);
+	             GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)rgbaBuffer);
 
 	delete[] chBuffer;
 	delete[] rgbaBuffer;
@@ -379,40 +383,44 @@ void myGlutReshape(int x, int y)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glFrustum(-xy_aspect*.08, xy_aspect*.08, -.08, .08, .1, 15.0);
+	glFrustum(-xy_aspect * .08, xy_aspect * .08, -.08, .08, .1, 15.0);
 
 	glutPostRedisplay();
 }
 
 void onRotate(int param)
 {
-	if (param == 2) {
+	if (param == 2)
+	{
 		totalRotationMatrix = cyMatrix4f(rotation) * totalRotationMatrix;
 	}
-	else if (param == 3) {
+	else if (param == 3)
+	{
 		rotation_x += 0.1;
 		totalRotationMatrix = cyMatrix4f::MatrixRotationX(rotation_x) * totalRotationMatrix;
 	}
-	else if (param == 4) {
+	else if (param == 4)
+	{
 		rotation_y += 0.1;
 		totalRotationMatrix = cyMatrix4f::MatrixRotationY(rotation_y) * totalRotationMatrix;
 	}
-	else if (param == 5) {
+	else if (param == 5)
+	{
 		rotation_z += 0.1;
 		totalRotationMatrix = cyMatrix4f::MatrixRotationZ(rotation_z) * totalRotationMatrix;
 	}
 	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
 }
 
-void addFloatSpinner(char *title, float *value, GLUI_Panel *panel)
+void addFloatSpinner(char* title, float* value, GLUI_Panel* panel)
 {
 	glui->add_spinner_to_panel(panel, title, GLUI_SPINNER_FLOAT, value)
-		->set_float_limits(0.0, 1.0);
+	    ->set_float_limits(0.0, 1.0);
 }
 
-void addTransferValuePanel(char *title, float &value, cyPoint4f &rgbaValue, GLUI_Panel *panel)
+void addTransferValuePanel(char* title, float& value, cyPoint4f& rgbaValue, GLUI_Panel* panel)
 {
-	GLUI_Panel *valuePanel = glui->add_rollout_to_panel(panel, title);
+	GLUI_Panel* valuePanel = glui->add_rollout_to_panel(panel, title);
 	addFloatSpinner("Value: ", &value, valuePanel);
 	addFloatSpinner("R: ", &rgbaValue.x, valuePanel);
 	addFloatSpinner("G: ", &rgbaValue.y, valuePanel);
@@ -424,16 +432,16 @@ void setUpGLUI()
 {
 	glui = GLUI_Master.create_glui_subwindow(main_window, GLUI_SUBWINDOW_LEFT);
 
-	GLUI_Panel *rotationPanel = glui->add_rollout("Rotation");
+	GLUI_Panel* rotationPanel = glui->add_rollout("Rotation");
 	glui->add_rotation_to_panel(rotationPanel, "Rotation", rotation, 2, onRotate)->set_spin(0);
 	glui->add_button_to_panel(rotationPanel, "Rotate X", 3, onRotate);
 	glui->add_button_to_panel(rotationPanel, "Rotate Y", 4, onRotate);
 	glui->add_button_to_panel(rotationPanel, "Rotate Z", 5, onRotate);
 
 	glui->add_spinner("Number of Samples", GLUI_SPINNER_INT, &numSamples)
-		->set_float_limits(0.0, 1000.0);
+	    ->set_float_limits(0.0, 1000.0);
 
-	GLUI_Panel *transferPanel = glui->add_rollout("Transfer Function");
+	GLUI_Panel* transferPanel = glui->add_rollout("Transfer Function");
 
 	addFloatSpinner("Minimum value: ", &minVal, transferPanel);
 	addTransferValuePanel("Value 1: ", val1, val1rgba, transferPanel);
@@ -450,7 +458,7 @@ int main(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextFlags(GLUT_DEBUG);
-	glutInitWindowSize(width*2.2 + 150, width*2.2);
+	glutInitWindowSize(width + 150, width);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	main_window = glutCreateWindow("Volume Render of a Present");
 	cyGL::PrintVersion();
