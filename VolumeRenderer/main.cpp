@@ -13,10 +13,7 @@ using namespace Eigen;
 
 #define width 660
 #define far_plane 500.0f
-#define inital_z -70.0f
 #define fov_degrees 45.0f
-#define flip_degree 135.1f
-#define y_trans -7
 
 cyTriMesh mesh;
 cyTriMesh lightObj;
@@ -63,6 +60,7 @@ float light_translate_xy [2] = {0, 0};
 float light_translate_x [1] = {0};
 float light_translate_y [1] = {0};
 float light_translate_z [1] = {0};
+int directionalLight = 0;
 int main_window;
 int numSamples = 30;
 float minVal = 0.3985;
@@ -84,16 +82,6 @@ const int LG_VOL_Z = 442;
 
 GLuint texture;
 
-float transformedMaxX;
-float transformedMinX;
-float transformedMaxY;
-float transformedMinY;
-float transformedMaxZ;
-float transformedMinZ;
-cyPoint3f hitPointEnter;
-cyPoint3f hitPointExit;
-cyPoint3f viewDir;
-
 void setInitialRotationAndTranslation()
 {
 	cy::Matrix4<float> rotationZ = cyMatrix4f::MatrixRotationZ(0);
@@ -113,6 +101,36 @@ cyPoint3f getTextureVertexFor(cyPoint3f pt)
 	return pt + 0.5;
 }
 
+cyPoint3f transformToImageSpace(cyPoint3f point, cyMatrix4f transformationMatrix)
+{
+	cyPoint4f transformedPt = perspectiveMatrix * view * transformationMatrix * cyPoint4f(point);
+	return cyPoint3f(transformedPt / transformedPt.w);
+}
+
+cyPoint3f findSweepStartPt(cyPoint3f lightDir)
+{
+	// Positive values are top/right, negative are bottom/left
+	if(abs(lightDir.x) > abs(lightDir.y))
+	{
+		return cyPoint3f(lightDir.x, 0, 0);
+	} else
+	{
+		return cyPoint3f(0, lightDir.y, 0);
+	}
+
+}
+
+void computeSweepDirection()
+{
+	if (directionalLight == 0)
+	{
+		cyPoint3f transformedLightPos = transformToImageSpace(lightPos, lightCameraTransformationMatrix);
+		cyPoint3f transformedOrigin = transformToImageSpace(cyPoint3f(0, 0, 0), cameraTransformationMatrix);
+		cyPoint3f lightDir = transformedLightPos - transformedOrigin;
+		cyPoint3f sweepStart = findSweepStartPt(lightDir);
+	}
+}
+
 
 void display()
 {
@@ -129,13 +147,13 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 	light_shaders.Bind();
+	computeSweepDirection();
 	light_shaders.SetUniform(1, lightCameraTransformationMatrix);
 	glBindVertexArray(lightVertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 	glutSwapBuffers();
 }
-
 
 void zoom()
 {
@@ -203,7 +221,6 @@ void move(int x, int y)
 		rotate();
 	}
 }
-
 
 void reset(int key, int x, int y)
 {
@@ -314,7 +331,7 @@ void createLightObj()
 	}
 
 	lightTransformationMatrix = cyMatrix4f::MatrixTrans(lightPos);
-	lightCameraTransformationMatrix = lightTransformationMatrix * cyMatrix4f::MatrixRotationY(-10);
+	lightCameraTransformationMatrix = lightTransformationMatrix * cyMatrix4f(light_rotation);
 
 	light_shaders = cy::GLSLProgram();
 	light_shaders.BuildFiles("light_vertex_shader.glsl", "light_fragment_shader.glsl");
@@ -487,6 +504,11 @@ void addTransferValuePanel(char* title, float& value, cyPoint4f& rgbaValue, GLUI
 void addLightPanel()
 {
 	GLUI_Panel* lightPanel = glui->add_rollout("Light Values", false);
+
+	GLUI_RadioGroup* lightType = glui->add_radiogroup_to_panel(lightPanel, &directionalLight);
+	glui->add_radiobutton_to_group(lightType, "Directional Light");
+	glui->add_radiobutton_to_group(lightType, "Point Light");
+
 	GLUI_Panel* lightRotationPanel = glui->add_rollout_to_panel(lightPanel, "Light Rotation");
 	glui->add_rotation_to_panel(lightRotationPanel, "Rotation", light_rotation, 2, onLightRotate)->set_spin(0);
 	glui->add_button_to_panel(lightRotationPanel, "Rotate X", 3, onLightRotate);
