@@ -18,11 +18,12 @@ using namespace Eigen;
 #define flip_degree 135.1f
 #define y_trans -7
 
-cyPoint3f lightVector = cyPoint3f(18, 60, 20);
-
 cyTriMesh mesh;
+cyTriMesh lightObj;
 GLuint vertexArrayObj;
+GLuint lightVertexArrayObj;
 cy::GLSLProgram volume_shaders;
+cy::GLSLProgram light_shaders;
 cy::Matrix4<float> cameraTransformationMatrix;
 cy::Matrix4<float> lightCameraTransformationMatrix;
 cy::Matrix4<float> perspectiveMatrix;
@@ -35,14 +36,12 @@ int selectedKey;
 bool zoom_in = true;
 int movement = 0;
 std::vector<cyPoint3f> vertices;
+std::vector<cyPoint3f> lightVertices;
 std::vector<cyPoint3f> textureVertices;
 std::vector<cyPoint3f> normals;
-cyPoint3f origin = cyPoint3f(0, 0, 2);
+cyPoint3f lightPos = cyPoint3f(0, 1, 0);
+cyPoint3f origin = cyPoint3f(0,0, 3.5);
 cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
-cyMatrix4f lightView = cyMatrix4f::MatrixView(lightVector, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
-cyMatrix4f lightProj = cyMatrix4f::MatrixPerspective(M_PI / 8, 1, 20, 200);
-cyMatrix4f bias = cyMatrix4f::MatrixTrans(cyPoint3f(0.5f, 0.5f, 0.495f)) * cyMatrix4f::MatrixScale(0.5f, 0.5f, 0.5f);
-cyMatrix4f teapotLightMVP;
 
 // GLUI vars
 GLUI *glui;
@@ -84,8 +83,6 @@ cyPoint3f viewDir;
 
 void setInitialRotationAndTranslation()
 {
-	cyPoint3f max = mesh.GetBoundMax();
-	cyPoint3f min = mesh.GetBoundMin();
 	cy::Matrix4<float> rotationZ = cyMatrix4f::MatrixRotationZ(0);
 	cy::Matrix4<float> rotationX = cyMatrix4f::MatrixRotationX(0);
 	cyPoint3f translation = cyPoint3f(0, 0, 0);
@@ -95,7 +92,6 @@ void setInitialRotationAndTranslation()
 	cameraTransformationMatrix = translationMatrix * totalRotationMatrix;
 
 	lightRotationMatrix = cyMatrix4f::MatrixRotationX(0);
-	teapotLightMVP = lightProj * lightView * cameraTransformationMatrix;
 }
 
 
@@ -118,6 +114,10 @@ void display()
 	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
 	volume_shaders.SetUniform(8, rgbas);
 	glBindVertexArray(vertexArrayObj);
+	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+	light_shaders.Bind();
+	glBindVertexArray(lightVertexArrayObj);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 	glutSwapBuffers();
@@ -284,6 +284,46 @@ void createObj()
 	glBindVertexArray(0);
 }
 
+void createLightObj() {
+	lightObj = cyTriMesh();
+	lightObj.LoadFromFileObj("light.obj");
+	lightObj.ComputeBoundingBox();
+	lightObj.ComputeNormals();
+	lightVertices = {};
+	for (int i = 0; i < lightObj.NF(); i = i + 1) {
+		cy::TriMesh::TriFace face = lightObj.F(i);
+		lightVertices.push_back(lightObj.V(face.v[0])/ 7);
+		lightVertices.push_back(lightObj.V(face.v[1])/ 7);
+		lightVertices.push_back(lightObj.V(face.v[2])/ 7);
+	}
+
+	lightTransformationMatrix = cyMatrix4f::MatrixTrans(lightPos);
+	lightCameraTransformationMatrix = lightTransformationMatrix * cyMatrix4f::MatrixRotationY(-10);
+
+	light_shaders = cy::GLSLProgram();
+	light_shaders.BuildFiles("light_vertex_shader.glsl", "light_fragment_shader.glsl");
+	light_shaders.Bind();
+	light_shaders.RegisterUniform(1, "cameraTransformation");
+	light_shaders.SetUniform(1, lightCameraTransformationMatrix);
+	light_shaders.RegisterUniform(2, "perspective");
+	light_shaders.SetUniform(2, perspectiveMatrix);
+	light_shaders.RegisterUniform(3, "view");
+	light_shaders.SetUniform(3, view);
+
+	GLuint lightVertexBufferObj[2];
+
+	glGenVertexArrays(1, &lightVertexArrayObj);
+	glBindVertexArray(lightVertexArrayObj);
+
+	glGenBuffers(1, lightVertexBufferObj);
+
+	glBindBuffer(GL_ARRAY_BUFFER, lightVertexBufferObj[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cyPoint3f) * lightVertices.size(), &lightVertices[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, 0, sizeof(cyPoint3f), NULL);
+
+	glBindVertexArray(0);
+}
 
 bool loadDatFileToTexture(char* name)
 {
@@ -427,6 +467,7 @@ int main(int argc, char* argv[])
 
 	loadDatFileToTexture("present246x246x221.dat");
 	createObj();
+	createLightObj();
 
 	//glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
