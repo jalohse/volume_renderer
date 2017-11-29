@@ -1,8 +1,8 @@
 #version 420 core
 
 uniform sampler3D tex;
-uniform sampler2D illumCacheIn;
-uniform sampler2D illumCacheOut;
+uniform layout(rgba32f) image2D illumCacheIn;
+uniform layout(rgba32f) image2D illumCacheOut;
 uniform int numSamples;
 uniform float minimumValue;
 uniform vec4 tfVals;
@@ -36,7 +36,7 @@ void main() {
 	vec3 step = dir * (1.0 / numSamples);
 	vec3 samplePosition = texCoor;
 	vec2 illumPrevPos = texCoor.xy;
-	vec4 illumIn = texture(illumCacheIn, illumPrevPos);
+	vec4 illumIn = imageLoad(illumCacheIn, ivec2(illumPrevPos));
 	for(int i = 0; i < numSamples; i++){
 		if(alpha < 1.0) {
 			vec4 texVal = texture(tex, samplePosition);
@@ -48,6 +48,7 @@ void main() {
 			illumOut.rgb = (1.0 - sampleCol.a) * illumIn.rgb + sampleCol.a * sampleCol.rgb;
 			illumOut.a = (1.0 - sampleCol.a) * illumIn.a + sampleCol.a;
 			builtUpColor += sampleCol;
+			illumPrevPos = illumPos;
 			imageStore(illumCacheOut, ivec2(illumPrevPos), sampleCol);
 			samplePosition += step;
 		} else {
