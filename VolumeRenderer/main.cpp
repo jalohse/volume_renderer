@@ -143,8 +143,8 @@ std::vector<cyPoint2f> findMinMaxImageSpaceVolumeBounds(cyPoint3f imageCacheNorm
 		cyPoint3f(volumeLowerLeft.x, volumeTopRight.y, volumeLowerLeft.z), cyPoint3f(volumeLowerLeft.x, volumeTopRight.y, volumeTopRight.z),
 		cyPoint3f(volumeTopRight.x, volumeLowerLeft.y, volumeLowerLeft.z), cyPoint3f(volumeTopRight.x, volumeLowerLeft.y, volumeTopRight.z),
 		cyPoint3f(volumeTopRight.x, volumeTopRight.y, volumeLowerLeft.z), volumeTopRight };
-	cyPoint2f max = cyPoint2f(0,0);
-	cyPoint2f min = cyPoint2f(0, 0);
+	cyPoint2f max = cyPoint2f(-FLT_MAX, -FLT_MAX);
+	cyPoint2f min = cyPoint2f(FLT_MAX, FLT_MAX);
 	for(int i = 0; i < corners.size(); i++)
 	{
 		cyPoint3f diagonal = corners.at(i);
