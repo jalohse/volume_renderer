@@ -125,7 +125,7 @@ cyPoint3f findSweepStartPt(cyPoint2f lightDir)
 
 cyPoint3f computeSweepDirection(cyPoint3f transformedLightPos, cyPoint3f transformedOrigin)
 {
-	cyPoint2f halfViewport = cyPoint2f(width) / 2;
+	cyPoint2f halfViewport = cyPoint2f(width, width) / 2;
 	cyMatrix4f viewportMatrix = cyMatrix4f::MatrixTrans(cyPoint3f(halfViewport, 0)) * cyMatrix3f::MatrixScale(
 		cyPoint3f(halfViewport, 1));
 	cyPoint4f imageSpaceOrigin = viewportMatrix * perspectiveMatrix * view * cyPoint4f(transformedOrigin, 1);
@@ -135,6 +135,27 @@ cyPoint3f computeSweepDirection(cyPoint3f transformedLightPos, cyPoint3f transfo
 	return findSweepStartPt(projectedLightDir);
 }
 
+std::vector<cyPoint3f> findMinMaxImageSpaceVolumeBounds(cyPoint3f imageCacheNormal, cyPoint3f imageCacheRight, cyPoint3f imageCacheUp)
+{
+	cyPoint3f volumeLowerLeft = transformToWorldSpace(mesh.GetBoundMax(), cameraTransformationMatrix);
+	cyPoint3f volumeTopRight = transformToWorldSpace(mesh.GetBoundMin(), cameraTransformationMatrix);
+	std::vector<cyPoint3f> corners = {volumeLowerLeft, cyPoint3f(volumeLowerLeft.x, volumeLowerLeft.y, volumeTopRight.z),
+		cyPoint3f(volumeLowerLeft.x, volumeTopRight.y, volumeLowerLeft.z), cyPoint3f(volumeLowerLeft.x, volumeTopRight.y, volumeTopRight.z),
+		cyPoint3f(volumeTopRight.x, volumeLowerLeft.y, volumeLowerLeft.z), cyPoint3f(volumeTopRight.x, volumeLowerLeft.y, volumeTopRight.z),
+		cyPoint3f(volumeTopRight.x, volumeTopRight.y, volumeLowerLeft.z), volumeTopRight };
+	cyPoint3f max = corners.at(0);
+	cyPoint3f min = corners.at(0);
+	for(int i = 0; i < corners.size(); i++)
+	{
+		cyPoint3f diagonal = corners.at(i);
+		float distance = std::abs(diagonal.Dot(imageCacheNormal));
+		cyPoint3f projected = diagonal - (-distance * imageCacheNormal);
+		cyPoint3f pixel = cyPoint3f(projected.Dot(imageCacheRight), projected.Dot(imageCacheUp), 0);
+		corners.at(i) = pixel;
+	}
+	return {min, max};
+}
+
 void computeImageCache(cyPoint3f lightDir)
 {
 	cyPoint3f imageCacheNormal = lightDir.GetNormalized();
@@ -142,6 +163,7 @@ void computeImageCache(cyPoint3f lightDir)
 	cyPoint3f imageCacheUp = dotProd < 0.99 ? cyPoint3f(0, 0, 1) : cyPoint3f(0, 1, 0);
 	cyPoint3f imageCacheRight = imageCacheNormal.Cross(imageCacheUp).GetNormalized();
 	imageCacheUp = imageCacheRight.Cross(imageCacheNormal).GetNormalized();
+	std::vector<cyPoint3f> minMax = findMinMaxImageSpaceVolumeBounds(imageCacheNormal, imageCacheRight, imageCacheUp);
 }
 
 void computeIPSVIVariables()
@@ -161,6 +183,7 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	computeIPSVIVariables();
 	int line = 0;
 	int numLines = 10;
 	volume_shaders.Bind();
