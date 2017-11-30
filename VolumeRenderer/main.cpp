@@ -104,46 +104,45 @@ cyPoint3f getTextureVertexFor(cyPoint3f pt)
 	return pt + 0.5;
 }
 
-cyPoint3f transformToImageSpace(cyPoint3f point, cyMatrix4f transformationMatrix)
+cyPoint3f transformToWorldSpace(cyPoint3f point, cyMatrix4f transformationMatrix)
 {
 	cyPoint4f transformedPt = perspectiveMatrix * view * transformationMatrix * cyPoint4f(point);
 	return cyPoint3f(transformedPt / transformedPt.w);
 }
 
-cyPoint3f findSweepStartPt(cyPoint3f lightDir)
+cyPoint3f findSweepStartPt(cyPoint2f lightDir)
 {
 	// Positive values are top/right side, negative are bottom/left side
-	if(abs(lightDir.x) > abs(lightDir.y))
+	if (abs(lightDir.x) > abs(lightDir.y))
 	{
 		return cyPoint3f(lightDir.x, 0, 0);
-	} else
+	}
+	else
 	{
 		return cyPoint3f(0, lightDir.y, 0);
 	}
-
 }
 
-cyPoint3f findAdjustedSweepDir(cyPoint3f lightDir)
+cyPoint3f computeSweepDirection(cyPoint3f transformedLightPos, cyPoint3f transformedOrigin)
 {
-	lightDir.Normalize();
-	cyPoint3f adjustedX = cyPoint3f(0, lightDir.y, lightDir.z);
-	cyPoint3f adjustedY = cyPoint3f(lightDir.x, 0, lightDir.z);
-	float xAngle = acos(lightDir.Dot(adjustedX));
-	float yAngle = acos(lightDir.Dot(adjustedY));
-	if(xAngle < yAngle) {
-		return adjustedX;
-	}
-	return adjustedY;
+	cyPoint2f halfViewport = cyPoint2f(width) / 2;
+	cyMatrix4f viewportMatrix = cyMatrix4f::MatrixTrans(cyPoint3f(halfViewport, 0)) * cyMatrix3f::MatrixScale(
+		cyPoint3f(halfViewport, 1));
+	cyPoint4f imageSpaceOrigin = viewportMatrix * perspectiveMatrix * view * cyPoint4f(transformedOrigin, 1);
+	cyPoint4f imageSpaceLightPos = viewportMatrix * perspectiveMatrix * view * cyPoint4f(transformedLightPos, 1);
+	cyPoint2f projectedLightDir = imageSpaceOrigin.XY() / imageSpaceOrigin.w - imageSpaceLightPos.XY() / imageSpaceLightPos
+		.w;
+	return findSweepStartPt(projectedLightDir);
 }
 
-std::vector<cyPoint3f> computeSweepDirection()
+void computeIPSVIVariables()
 {
 	if (directionalLight == 0)
 	{
-		cyPoint3f transformedLightPos = transformToImageSpace(lightPos, lightCameraTransformationMatrix);
-		cyPoint3f transformedOrigin = transformToImageSpace(cyPoint3f(0, 0, 0), cameraTransformationMatrix);
+		cyPoint3f transformedLightPos = transformToWorldSpace(lightPos, lightCameraTransformationMatrix);
+		cyPoint3f transformedOrigin = transformToWorldSpace(cyPoint3f(0, 0, 0), cameraTransformationMatrix);
+		cyPoint3f sweepDir = computeSweepDirection(transformedLightPos, transformedOrigin);
 		cyPoint3f lightDir = transformedLightPos - transformedOrigin;
-		return { findSweepStartPt(lightDir), findAdjustedSweepDir(lightDir) };
 	}
 }
 
@@ -163,11 +162,14 @@ void display()
 	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
 	volume_shaders.SetUniform(8, rgbas);
 
-	while (line < numLines) {
-		if (line % 2 == 0) {
+	while (line < numLines)
+	{
+		if (line % 2 == 0)
+		{
 			illumCacheIn.BindTexture(0);
 			illumCacheOut.BindTexture(1);
-		} else
+		}
+		else
 		{
 			illumCacheIn.BindTexture(1);
 			illumCacheOut.BindTexture(0);
@@ -500,16 +502,19 @@ void onLightRotate(int param)
 void onLightTranslate(int param)
 {
 	cyPoint3f translation;
-	if(param == 0)
+	if (param == 0)
 	{
 		translation = cyPoint3f(light_translate_xy[0], light_translate_xy[1], 0);
-	} else if (param == 1)
+	}
+	else if (param == 1)
 	{
 		translation = cyPoint3f(light_translate_x[0], 0, 0);
-	} else if (param == 2)
+	}
+	else if (param == 2)
 	{
 		translation = cyPoint3f(0, light_translate_y[0], 0);
-	} else if (param == 3)
+	}
+	else if (param == 3)
 	{
 		translation = cyPoint3f(0, 0, light_translate_z[0]);
 	}
@@ -549,13 +554,13 @@ void addLightPanel()
 
 	GLUI_Panel* lightTransformPanel = glui->add_rollout_to_panel(lightPanel, "Light Movement");
 	glui->add_translation_to_panel(lightTransformPanel, "Translate XY", GLUI_TRANSLATION_XY,
-		light_translate_xy, 0, onLightTranslate)->set_speed(0.0002);
+	                               light_translate_xy, 0, onLightTranslate)->set_speed(0.0002);
 	glui->add_translation_to_panel(lightTransformPanel, "Translate X", GLUI_TRANSLATION_X,
-		light_translate_x, 1, onLightTranslate)->set_speed(0.0002);
+	                               light_translate_x, 1, onLightTranslate)->set_speed(0.0002);
 	glui->add_translation_to_panel(lightTransformPanel, "Translate Y", GLUI_TRANSLATION_Y,
-		light_translate_y, 2, onLightTranslate)->set_speed(0.0002);
+	                               light_translate_y, 2, onLightTranslate)->set_speed(0.0002);
 	glui->add_translation_to_panel(lightTransformPanel, "Translate Z", GLUI_TRANSLATION_Z,
-		light_translate_z, 3, onLightTranslate)->set_speed(0.0002);
+	                               light_translate_z, 3, onLightTranslate)->set_speed(0.0002);
 }
 
 void setUpGLUI()
