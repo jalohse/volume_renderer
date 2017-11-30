@@ -135,7 +135,7 @@ cyPoint3f computeSweepDirection(cyPoint3f transformedLightPos, cyPoint3f transfo
 	return findSweepStartPt(projectedLightDir);
 }
 
-std::vector<cyPoint3f> findMinMaxImageSpaceVolumeBounds(cyPoint3f imageCacheNormal, cyPoint3f imageCacheRight, cyPoint3f imageCacheUp)
+std::vector<cyPoint2f> findMinMaxImageSpaceVolumeBounds(cyPoint3f imageCacheNormal, cyPoint3f imageCacheRight, cyPoint3f imageCacheUp)
 {
 	cyPoint3f volumeLowerLeft = transformToWorldSpace(mesh.GetBoundMax(), cameraTransformationMatrix);
 	cyPoint3f volumeTopRight = transformToWorldSpace(mesh.GetBoundMin(), cameraTransformationMatrix);
@@ -143,15 +143,18 @@ std::vector<cyPoint3f> findMinMaxImageSpaceVolumeBounds(cyPoint3f imageCacheNorm
 		cyPoint3f(volumeLowerLeft.x, volumeTopRight.y, volumeLowerLeft.z), cyPoint3f(volumeLowerLeft.x, volumeTopRight.y, volumeTopRight.z),
 		cyPoint3f(volumeTopRight.x, volumeLowerLeft.y, volumeLowerLeft.z), cyPoint3f(volumeTopRight.x, volumeLowerLeft.y, volumeTopRight.z),
 		cyPoint3f(volumeTopRight.x, volumeTopRight.y, volumeLowerLeft.z), volumeTopRight };
-	cyPoint3f max = corners.at(0);
-	cyPoint3f min = corners.at(0);
+	cyPoint2f max = cyPoint2f(0,0);
+	cyPoint2f min = cyPoint2f(0, 0);
 	for(int i = 0; i < corners.size(); i++)
 	{
 		cyPoint3f diagonal = corners.at(i);
 		float distance = std::abs(diagonal.Dot(imageCacheNormal));
 		cyPoint3f projected = diagonal - (-distance * imageCacheNormal);
-		cyPoint3f pixel = cyPoint3f(projected.Dot(imageCacheRight), projected.Dot(imageCacheUp), 0);
-		corners.at(i) = pixel;
+		cyPoint2f pixel = cyPoint2f(projected.Dot(imageCacheRight), projected.Dot(imageCacheUp));
+		if (min.x > pixel.x) min.x = pixel.x;
+		if (min.y > pixel.y) min.y = pixel.y;
+		if (max.x < pixel.x) max.x = pixel.x;
+		if (max.y < pixel.y) max.y = pixel.y;
 	}
 	return {min, max};
 }
@@ -163,7 +166,7 @@ void computeImageCache(cyPoint3f lightDir)
 	cyPoint3f imageCacheUp = dotProd < 0.99 ? cyPoint3f(0, 0, 1) : cyPoint3f(0, 1, 0);
 	cyPoint3f imageCacheRight = imageCacheNormal.Cross(imageCacheUp).GetNormalized();
 	imageCacheUp = imageCacheRight.Cross(imageCacheNormal).GetNormalized();
-	std::vector<cyPoint3f> minMax = findMinMaxImageSpaceVolumeBounds(imageCacheNormal, imageCacheRight, imageCacheUp);
+	std::vector<cyPoint2f> minMax = findMinMaxImageSpaceVolumeBounds(imageCacheNormal, imageCacheRight, imageCacheUp);
 }
 
 void computeIPSVIVariables()
