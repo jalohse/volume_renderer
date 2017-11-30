@@ -135,6 +135,15 @@ cyPoint3f computeSweepDirection(cyPoint3f transformedLightPos, cyPoint3f transfo
 	return findSweepStartPt(projectedLightDir);
 }
 
+void computeImageCache(cyPoint3f lightDir)
+{
+	cyPoint3f imageCacheNormal = lightDir.GetNormalized();
+	float dotProd = std::abs(imageCacheNormal.Dot(cyPoint3f(0, 0, 1)));
+	cyPoint3f imageCacheUp = dotProd < 0.99 ? cyPoint3f(0, 0, 1) : cyPoint3f(0, 1, 0);
+	cyPoint3f imageCacheRight = imageCacheNormal.Cross(imageCacheUp).GetNormalized();
+	imageCacheUp = imageCacheRight.Cross(imageCacheNormal).GetNormalized();
+}
+
 void computeIPSVIVariables()
 {
 	if (directionalLight == 0)
@@ -143,6 +152,7 @@ void computeIPSVIVariables()
 		cyPoint3f transformedOrigin = transformToWorldSpace(cyPoint3f(0, 0, 0), cameraTransformationMatrix);
 		cyPoint3f sweepDir = computeSweepDirection(transformedLightPos, transformedOrigin);
 		cyPoint3f lightDir = transformedLightPos - transformedOrigin;
+		computeImageCache(lightDir);
 	}
 }
 
