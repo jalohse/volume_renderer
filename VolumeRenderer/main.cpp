@@ -40,8 +40,8 @@ cyPoint3f lightPos = cyPoint3f(0, 1, 0);
 cyPoint3f origin = cyPoint3f(0, 0, 3.5);
 cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0, 1, 0));
 
-cy::GLRenderTexture<GL_TEXTURE_2D> illumCacheIn;
-cy::GLRenderTexture<GL_TEXTURE_2D> illumCacheOut;
+GLuint illumCacheIn;
+GLuint illumCacheOut;
 cyPoint3f imageCacheOrigin;
 cyPoint3f imageCacheNormal;
 cyPoint3f imageCacheRight;
@@ -215,13 +215,13 @@ void display()
 	{
 		if (line % 2 == 0)
 		{
-			illumCacheIn.BindTexture(0);
-			illumCacheOut.BindTexture(1);
+			glBindImageTexture(3, illumCacheIn, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+			glBindImageTexture(4, illumCacheOut, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 		}
 		else
 		{
-			illumCacheIn.BindTexture(1);
-			illumCacheOut.BindTexture(0);
+			glBindImageTexture(4, illumCacheIn, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+			glBindImageTexture(3, illumCacheOut, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 		}
 		glBindVertexArray(vertexArrayObj);
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -404,6 +404,17 @@ void createObj()
 	glVertexAttribPointer(2, 3, GL_FLOAT, 0, sizeof(cyPoint3f), nullptr);
 
 	glBindVertexArray(0);
+
+
+	glGenTextures(1, &illumCacheIn);
+	glBindTexture(GL_TEXTURE_2D, illumCacheIn);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8UI, width + 150, width);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenTextures(1, &illumCacheOut);
+	glBindTexture(GL_TEXTURE_2D, illumCacheOut);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8UI, width + 150, width);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void createLightObj()
@@ -669,9 +680,6 @@ int main(int argc, char* argv[])
 	loadDatFileToTexture("present246x246x221.dat");
 	createObj();
 	createLightObj();
-
-	illumCacheIn.Initialize(true, 2, width + 150, width, cy::GL::TYPE_FLOAT);
-	illumCacheOut.Initialize(true, 2, width + 150, width, cy::GL::TYPE_FLOAT);
 
 
 	//glEnable(GL_DEPTH_TEST);

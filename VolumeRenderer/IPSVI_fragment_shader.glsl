@@ -1,8 +1,8 @@
 #version 420 core
 
 uniform sampler3D tex;
-uniform layout(rgba32f) image2D illumCacheIn;
-uniform layout(rgba32f) image2D illumCacheOut;
+uniform layout(binding=3, rgba8ui) uimage2D illumCacheIn;
+uniform layout(binding=4, rgba8ui) uimage2D illumCacheOut;
 uniform int numSamples;
 uniform float minimumValue;
 uniform vec4 tfVals;
@@ -68,7 +68,7 @@ void main() {
 			illumOut.a = (1.0 - sampleCol.a) * illumIn.a + sampleCol.a;
 			builtUpColor += sampleCol;
 			illumPrevPos = illumPos;
-			imageStore(illumCacheOut, ivec2(illumPrevPos), sampleCol);
+			imageStore(illumCacheOut, ivec2(illumPrevPos), uvec4(sampleCol * 255.0f));
 			samplePosition += step;
 		} else {
 			i = numSamples;
