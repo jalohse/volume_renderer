@@ -167,6 +167,9 @@ void computeImageCache(cyPoint3f lightDir)
 	cyPoint3f imageCacheRight = imageCacheNormal.Cross(imageCacheUp).GetNormalized();
 	imageCacheUp = imageCacheRight.Cross(imageCacheNormal).GetNormalized();
 	std::vector<cyPoint2f> minMax = findMinMaxImageSpaceVolumeBounds(imageCacheNormal, imageCacheRight, imageCacheUp);
+	cyPoint3f imageCacheOrigin = floor(minMax.at(0).x) * imageCacheRight + floor(minMax.at(0).y) * imageCacheUp;
+	imageCacheRight *= float(width + 149) / (ceil(minMax.at(1).x - floor(minMax.at(0).x)));
+	imageCacheUp *= float(width -1) / (ceil(minMax.at(1).y - floor(minMax.at(0).y)));
 }
 
 void computeIPSVIVariables()
