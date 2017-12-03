@@ -7,6 +7,13 @@ uniform int numSamples;
 uniform float minimumValue;
 uniform vec4 tfVals;
 uniform mat4 rgbaVals;
+uniform mat4 cameraTransformation;
+uniform mat4 perspective;
+uniform mat4 view;
+uniform vec3 imageCacheOrigin;
+uniform vec3 imageCacheNormal;
+uniform vec3 imageCacheRight;
+uniform vec3 imageCacheUp;
 
 out vec4 color;
 
@@ -29,19 +36,31 @@ vec4 classify(float val) {
 	return col;
 }
 
+vec2 calculateImageCachePosition(vec3 samplePosition) {
+	vec4 worldSamplePos =  perspective * view * cameraTransformation * vec4(samplePosition,1);
+	worldSamplePos /= worldSamplePos.w;
+	vec3 diagonal = vec3(worldSamplePos) - imageCacheOrigin;
+	float distance = abs(dot(diagonal, imageCacheNormal));
+    vec3 worldProjected = diagonal - (-distance * imageCacheNormal);
+
+    // transforms world coordinates (have to be lying on the IC plane) to IC pixel space
+    return vec2(round(dot(worldProjected, imageCacheRight)), round(dot(worldProjected, imageCacheUp)));
+}
+
+
 void main() {
 	vec3 dir = normalize((texCoor - vec3(0.5)) - camerapos);
 	vec4 builtUpColor = vec4(0,0,0, 0);
 	float alpha = 0.0f;
 	vec3 step = dir * (1.0 / numSamples);
 	vec3 samplePosition = texCoor;
-	vec2 illumPrevPos = texCoor.xy;
+	vec2 illumPrevPos = calculateImageCachePosition(texCoor);
 	vec4 illumIn = imageLoad(illumCacheIn, ivec2(illumPrevPos));
 	for(int i = 0; i < numSamples; i++){
 		if(alpha < 1.0) {
 			vec4 texVal = texture(tex, samplePosition);
-			vec2 illumPos = samplePosition.xy;
-			illumIn += texVal;
+			vec2 illumPos = calculateImageCachePosition(samplePosition);
+			illumIn = imageLoad(illumCacheIn, ivec2(illumPos));
 			vec4 sampleCol = classify(texVal.r);
 			alpha += sampleCol.a;
 			vec4 illumOut;

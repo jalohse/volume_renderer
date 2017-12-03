@@ -42,6 +42,10 @@ cyMatrix4f view = cyMatrix4f::MatrixView(origin, cyPoint3f(0, 0, 0), cyPoint3f(0
 
 cy::GLRenderTexture<GL_TEXTURE_2D> illumCacheIn;
 cy::GLRenderTexture<GL_TEXTURE_2D> illumCacheOut;
+cyPoint3f imageCacheOrigin;
+cyPoint3f imageCacheNormal;
+cyPoint3f imageCacheRight;
+cyPoint3f imageCacheUp;
 
 // GLUI vars
 GLUI* glui;
@@ -161,15 +165,17 @@ std::vector<cyPoint2f> findMinMaxImageSpaceVolumeBounds(cyPoint3f imageCacheNorm
 
 void computeImageCache(cyPoint3f lightDir)
 {
-	cyPoint3f imageCacheNormal = lightDir.GetNormalized();
+	imageCacheNormal = lightDir.GetNormalized();
 	float dotProd = std::abs(imageCacheNormal.Dot(cyPoint3f(0, 0, 1)));
-	cyPoint3f imageCacheUp = dotProd < 0.99 ? cyPoint3f(0, 0, 1) : cyPoint3f(0, 1, 0);
-	cyPoint3f imageCacheRight = imageCacheNormal.Cross(imageCacheUp).GetNormalized();
+	imageCacheUp = dotProd < 0.99 ? cyPoint3f(0, 0, 1) : cyPoint3f(0, 1, 0);
+	imageCacheRight = imageCacheNormal.Cross(imageCacheUp).GetNormalized();
 	imageCacheUp = imageCacheRight.Cross(imageCacheNormal).GetNormalized();
 	std::vector<cyPoint2f> minMax = findMinMaxImageSpaceVolumeBounds(imageCacheNormal, imageCacheRight, imageCacheUp);
-	cyPoint3f imageCacheOrigin = floor(minMax.at(0).x) * imageCacheRight + floor(minMax.at(0).y) * imageCacheUp;
+	imageCacheOrigin = floor(minMax.at(0).x) * imageCacheRight + floor(minMax.at(0).y) * imageCacheUp;
 	imageCacheRight *= float(width + 149) / (ceil(minMax.at(1).x - floor(minMax.at(0).x)));
+	imageCacheRight.GetNormalized();
 	imageCacheUp *= float(width -1) / (ceil(minMax.at(1).y - floor(minMax.at(0).y)));
+	imageCacheUp.GetNormalized();
 }
 
 void computeIPSVIVariables()
@@ -200,6 +206,10 @@ void display()
 	volume_shaders.SetUniform(7, tfVals);
 	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
 	volume_shaders.SetUniform(8, rgbas);
+	volume_shaders.SetUniform(9, imageCacheOrigin);
+	volume_shaders.SetUniform(10, imageCacheNormal);
+	volume_shaders.SetUniform(11, imageCacheRight);
+	volume_shaders.SetUniform(12, imageCacheUp);
 
 	while (line < numLines)
 	{
@@ -355,6 +365,14 @@ void createObj()
 	cyMatrix4f rgbas = cyMatrix4f(val1rgba, val2rgba, val3rgba, val4rgba);
 	volume_shaders.RegisterUniform(8, "rgbaVals");
 	volume_shaders.SetUniform(8, rgbas);
+	volume_shaders.RegisterUniform(9, "imageCacheOrigin");
+	volume_shaders.SetUniform(9, cyPoint3f(0,0,0));
+	volume_shaders.RegisterUniform(10, "imageCacheNormal");
+	volume_shaders.SetUniform(10, cyPoint3f(0, 0, 0));
+	volume_shaders.RegisterUniform(11, "imageCacheRight");
+	volume_shaders.SetUniform(11, cyPoint3f(0, 0, 0));
+	volume_shaders.RegisterUniform(12, "imageCacheUp");
+	volume_shaders.SetUniform(12, cyPoint3f(0, 0, 0));
 
 	GLuint vertexBufferObj[2];
 	GLuint textureBufferObj[1];
